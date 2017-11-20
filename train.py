@@ -28,6 +28,8 @@ def train_model(train_data, model, args):
 		#											 guess,
 		#											 tot))
 		print('Train loss: {}'.format(loss))
+		torch.save(model, args.save_path)	
+	
 
 def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 	pos_batch = []
@@ -52,37 +54,27 @@ def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 		   torch.LongTensor(pos_batch),\
 		   torch.LongTensor(neg_batch)
 
-def mmloss(q, p_plus, ps):
+def mmloss(q, p_plus, ps, n_size):
 	#q: bs x Co
 	#p_plus: bs x Co
 	#ps: 101 x bs x Co	
 	cos = nn.CosineSimilarity()
 	s_0 = cos(q, p_plus) # bs x 1
 
-	qs = q.repeat(101,1,1) # 101 x bs x Co
+	qs = q.repeat(n_size+1,1,1) # 101 x bs x Co
 	cos2 = nn.CosineSimilarity(dim=2)
 	s_s = cos2(qs,ps) # 101 x bs x 1
     
-    
-    
-    
     # try to make sure that this line keeps being there
-    
-    
-    
-    
 
-	s_0 = s_0.repeat(101,1) # 101 x bs x 1
+	s_0 = s_0.repeat(n_size+1,1) # 101 x bs x 1
 	scores = s_0-s_s # 101 x bs x 1
 	score,_ = torch.max(scores,0) 
 	return torch.mean(score)
 
 def run_epoch(data, is_training, model, optimizer, args):
-	# set loss function
-	criterion = nn.NLLLoss()	
+	n_size = args.neg_samples
 
-	# if not training, no need to use batches
-	bs = len(data)
 	if is_training: bs = args.batch_size
 	
 	# load random batches
@@ -100,6 +92,7 @@ def run_epoch(data, is_training, model, optimizer, args):
 		# first, get additional vectors per batch
 		ids = batch['id']
 		titles = batch['title']
+
 
 		# for each id, look up associated questions
 		titles, pos, neg = get_pos_neg(data.idx_to_cand,
@@ -120,14 +113,12 @@ def run_epoch(data, is_training, model, optimizer, args):
 		ps = ps.contiguous().view(-1,38)
 		ps = model(ps)
 		
-#		pdb.set_trace()
-		
 		if args.model == 'cnn':
-			ps = ps.contiguous().view(101,-1,300)
+			ps = ps.contiguous().view(n_size+1,-1,3*args.kernel_num)
 		elif args.model == 'lstm':
-			ps = ps.contiguous().view(101,-1,args.hidden_size)
+			ps = ps.contiguous().view(n_size+1,-1,args.hidden_size)
 			
-		loss = mmloss(q, p_plus, ps)			
+		loss = mmloss(q, p_plus, ps, n_size)			
 
 		if is_training:
 			# back-propegate to compute gradient

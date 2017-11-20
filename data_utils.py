@@ -12,7 +12,7 @@ PATH2 = "askubuntu-master/{}_random.txt"
 
 #inherit from torch Dataset class, so i can make batches
 class FullDataset(data.Dataset):
-	def __init__(self, name, word_to_indx, embeddings):
+	def __init__(self, name, word_to_indx, embeddings, args):
 		self.name = name
 		self.dataset = []
 		self.word_to_indx  = word_to_indx
@@ -20,7 +20,7 @@ class FullDataset(data.Dataset):
 		self.idx_to_vec = {}
 
 		if name == 'train' or name == 'dev':
-			self.idx_to_cand = self.load_cand_sets()
+			self.idx_to_cand = self.load_cand_sets(args)
 
 		with gzip.open(PATH) as file:
 			lines = file.readlines()
@@ -30,16 +30,17 @@ class FullDataset(data.Dataset):
 					self.dataset.append(sample)
 			file.close()
 
-	def load_cand_sets(self):
+	def load_cand_sets(self, args):
 		idx_to_cand = {}
 		with open(PATH2.format(self.name)) as file:
 			lines = file.readlines()
-			for line in lines[:1000]:
+			for line in lines:#[:1000]:
 				line = line.split('\t')
 				idx = int(line[0])
 				pos = map(lambda x: int(x), line[1].split())
 				neg = map(lambda x: int(x), line[2].split())
 				neg = filter(lambda x: x <> pos, neg)
+				neg = neg[:args.neg_samples]
 				idx_to_cand[idx] = (pos,neg)
 			file.close()
 		return idx_to_cand
@@ -49,11 +50,9 @@ class FullDataset(data.Dataset):
 		line = line.split('\t')
 		id = int(line[0])
 		title = line[1].split()
-
 		#body = line[2].split()
 
 		x =  getIndicesTensor(title, self.word_to_indx, self.max_length_t)
-		#y =  getIndicesTensor(body, self.word_to_indx, self.max_length_b)
 		sample = {'id':id, 'title':x}
 		self.idx_to_vec[id] = x
 		if not id in self.idx_to_cand:
@@ -103,12 +102,12 @@ def getEmbeddingTensor():
 
 
 # Build dataset
-def load_dataset():
+def load_dataset(args):
 	print("\nLoading data...")
 	embeddings, word_to_indx = getEmbeddingTensor()
 
 	# load questions
-	train_data = FullDataset('train', word_to_indx,embeddings)
+	train_data = FullDataset('train', word_to_indx,embeddings, args)
 	#dev_data = FullDataset('dev', word_to_indx, embeddings)
 	#test_data = FullDataset('test', word_to_indx, embeddings)
 	return train_data, embeddings#, dev_data, test_data, embeddings
