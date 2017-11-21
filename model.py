@@ -38,8 +38,7 @@ class CNN(nn.Module):
 
 		x = torch.cat(x, 1)
  
-		return x #nn.CosineSimilarity(x,y)
-
+		return x 
 
 class LSTM(nn.Module):
 	def __init__(self, args, embeddings):
@@ -64,8 +63,6 @@ class LSTM(nn.Module):
 		
 
 	def forward(self, x):
-		
-		
 		x = self.embed(x) # (N,W,D) 
  
 		if self.args.static:

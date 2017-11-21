@@ -16,11 +16,10 @@ class FullDataset(data.Dataset):
 		self.name = name
 		self.dataset = []
 		self.word_to_indx  = word_to_indx
-		self.max_length_t = 38
+		self.max_length = 38
 		self.idx_to_vec = {}
 
-		if name == 'train' or name == 'dev':
-			self.idx_to_cand = self.load_cand_sets(args)
+		self.idx_to_cand = self.load_cand_sets(args,name)
 
 		with gzip.open(PATH) as file:
 			lines = file.readlines()
@@ -30,16 +29,23 @@ class FullDataset(data.Dataset):
 					self.dataset.append(sample)
 			file.close()
 
-	def load_cand_sets(self, args):
+	def load_cand_sets(self, args, name):
+		if name == 'train':
+			path = PATH2.format(self.name)
+		elif name == 'dev':
+			path = 'askubuntu-master/dev.txt'
+		elif name == 'test':
+			path = 'askubuntu-master/test.txt'
+
 		idx_to_cand = {}
-		with open(PATH2.format(self.name)) as file:
+		with open(path) as file:
 			lines = file.readlines()
 			for line in lines:#[:1000]:
 				line = line.split('\t')
 				idx = int(line[0])
 				pos = map(lambda x: int(x), line[1].split())
 				neg = map(lambda x: int(x), line[2].split())
-				neg = filter(lambda x: x <> pos, neg)
+				#neg = filter(lambda x: x <> pos, neg)
 				neg = neg[:args.neg_samples]
 				idx_to_cand[idx] = (pos,neg)
 			file.close()
@@ -52,7 +58,7 @@ class FullDataset(data.Dataset):
 		title = line[1].split()
 		#body = line[2].split()
 
-		x =  getIndicesTensor(title, self.word_to_indx, self.max_length_t)
+		x =  getIndicesTensor(title, self.word_to_indx, self.max_length)
 		sample = {'id':id, 'title':x}
 		self.idx_to_vec[id] = x
 		if not id in self.idx_to_cand:
@@ -108,7 +114,7 @@ def load_dataset(args):
 
 	# load questions
 	train_data = FullDataset('train', word_to_indx,embeddings, args)
-	#dev_data = FullDataset('dev', word_to_indx, embeddings)
-	#test_data = FullDataset('test', word_to_indx, embeddings)
-	return train_data, embeddings#, dev_data, test_data, embeddings
+	dev_data = FullDataset('dev', word_to_indx, embeddings, args)
+	test_data = FullDataset('test', word_to_indx, embeddings, args)
+	return train_data, dev_data, test_data, embeddings
 

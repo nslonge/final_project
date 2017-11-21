@@ -7,6 +7,7 @@ import train
 import torch
 import operator
 import pdb
+import evaluate
 
 # model parameters
 parser = argparse.ArgumentParser(description=
@@ -17,7 +18,8 @@ parser.add_argument('--epochs', type=int, default=50, help=
 								'number of epochs for train [default: 50]')
 parser.add_argument('--batch_size', type=int, default=64, help=
 								'batch size for training [default: 64]')
-parser.add_argument('--save-path', type=str, default='snapshot', help='where to save the snapshot')
+parser.add_argument('--delta', type=float, default=.01, help='delta for use in loss function')
+parser.add_argument('--save-path', type=str, default='./mod.pkl', help='where to save the snapshot')
 parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model?')
 # data 
 parser.add_argument('--shuffle', action='store_true', default=False, help='shuffle the data every epoch' )
@@ -43,27 +45,36 @@ def main():
 		print("\t{}={}".format(attr.upper(), value))
 	
 	# load data
-	train_data, embeddings = data_utils.load_dataset(args)
+	train_data, dev_data, test_data, embeddings = data_utils.load_dataset(args)
 	
 	# initalize necessary parameters
 	args.embed_num = embeddings.shape[0]
 	args.kernel_sizes = [int(k) for k in args.kernel_sizes.split(',')]
 	
-	# choose model
-#	args.model = 'lstm'
-	#args.model = 'cnn'
-	
 	# load model
-	if args.model == 'lstm':
-		mod = model.LSTM(args, embeddings)
-	else:
-		mod = model.CNN(args, embeddings)
+	if args.snapshot is None:
+		# initalize model
+		if args.model == 'lstm':
+			mod = model.LSTM(args, embeddings)
+		elif args.model == 'cnn':
+			mod = model.CNN(args, embeddings)
+		# train model
+		res = train.train_model(train_data, mod, args)
+	else :
+		print('\nLoading model from [%s]...' % args.snapshot)
+		try:
+			mod = torch.load(args.snapshot)
+		except :
+			print("Sorry, This snapshot doesn't exist."); exit()
+		print(mod)
 	
-	# train model
-	res = train.train_model(train_data, mod, args)
+	# evaluate
+	print('Evaluating on dev')
+	evaluate.evaluate(mod, dev_data, args)
 
-	# save model
-		
+	print('Evaluating on test')
+	evaluate.evaluate(mod, test_data, args)
+
 
 if __name__=="__main__":
 	main()

@@ -10,7 +10,6 @@ import datetime
 import pdb
 import numpy as np
 
-
 torch.manual_seed(1)
 
 def train_model(train_data, model, args):
@@ -54,33 +53,36 @@ def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 		   torch.LongTensor(pos_batch),\
 		   torch.LongTensor(neg_batch)
 
-def mmloss(q, p_plus, ps, n_size):
-	#q: bs x Co
-	#p_plus: bs x Co
-	#ps: 101 x bs x Co	
+def mmloss(q, p_plus, ps, args):
+	#q: (bs,Co), p_plus: (bs, Co), ps: (neg_samples, bs, Co)	
+
+	# get s(q,p+)
 	cos = nn.CosineSimilarity()
-	s_0 = cos(q, p_plus) # bs x 1
+	s_0 = cos(q, p_plus) # (bs)
 
-	qs = q.repeat(n_size+1,1,1) # 101 x bs x Co
+	# get [s(q,p_i),...]*neg_samples
+	qs = q.repeat(args.neg_samples+1,1,1) # (neg_samples,bs)
 	cos2 = nn.CosineSimilarity(dim=2)
-	s_s = cos2(qs,ps) # 101 x bs x 1
-    
-    # try to make sure that this line keeps being there
+	s_s = cos2(qs,ps) # (neg_samples, bs)
 
-	s_0 = s_0.repeat(n_size+1,1) # 101 x bs x 1
-	scores = s_0-s_s # 101 x bs x 1
-	score,_ = torch.max(scores,0) 
+	# compute delta tensor 
+	bs = s_0.data.shape[0]
+	delta = np.array([0.0]+[args.delta for _ in range(args.neg_samples)])
+	delta = np.tile(delta, (bs,1))
+	delta = delta.T #(neg_samples, bs)
+	delta = autograd.Variable(torch.Tensor(delta))
+
+	# compute score
+	s_0 = s_0.repeat(args.neg_samples+1,1) # (neg_samples, bs)
+	scores = s_s-s_0+delta # (neg_samples, bs)
+	score,_ = torch.max(scores,0)
 	return torch.mean(score)
 
 def run_epoch(data, is_training, model, optimizer, args):
-	n_size = args.neg_samples
-
-	if is_training: bs = args.batch_size
-	
 	# load random batches
 	data_loader = torch.utils.data.DataLoader(
 		data,
-		batch_size=bs,
+		batch_size=args.batch_size,
 		shuffle=True,
 		num_workers=4,
 		drop_last=True)
@@ -93,7 +95,6 @@ def run_epoch(data, is_training, model, optimizer, args):
 		ids = batch['id']
 		titles = batch['title']
 
-
 		# for each id, look up associated questions
 		titles, pos, neg = get_pos_neg(data.idx_to_cand,
 									   data.idx_to_vec, 
@@ -102,10 +103,10 @@ def run_epoch(data, is_training, model, optimizer, args):
 		q = autograd.Variable(titles)
 		p_plus = autograd.Variable(pos)
 		ps = autograd.Variable(neg)
+
 			
-		if is_training:
-			# zero all gradients
-			optimizer.zero_grad()
+		# zero all gradients
+		optimizer.zero_grad()
 
 		# run the batch through the model
 		q = model(q)
@@ -114,17 +115,18 @@ def run_epoch(data, is_training, model, optimizer, args):
 		ps = model(ps)
 		
 		if args.model == 'cnn':
-			ps = ps.contiguous().view(n_size+1,-1,3*args.kernel_num)
+			ps = ps.contiguous().view(args.neg_samples+1,
+									  -1,
+									  len(args.kernel_sizes) * args.kernel_num)
 		elif args.model == 'lstm':
-			ps = ps.contiguous().view(n_size+1,-1,args.hidden_size)
+			ps = ps.contiguous().view(args.neg_samples+1,-1,args.hidden_size)
 			
-		loss = mmloss(q, p_plus, ps, n_size)			
+		loss = mmloss(q, p_plus, ps, args)			
 
-		if is_training:
-			# back-propegate to compute gradient
-			loss.backward()
-			# descend along gradient
-			optimizer.step()
+		# back-propegate to compute gradient
+		loss.backward()
+		# descend along gradient
+		optimizer.step()
 
 		losses.append(loss.cpu().data[0])
 
