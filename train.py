@@ -9,10 +9,11 @@ from tqdm import tqdm
 import datetime
 import pdb
 import numpy as np
+import evaluate
 
 torch.manual_seed(1)
 
-def train_model(train_data, model, args):
+def train_model(train_data, dev_data, test_data, model, args):
 	# use an optimized version of SGD
 	parameters = filter(lambda p: p.requires_grad, model.parameters())#
 	optimizer = torch.optim.Adam(parameters,
@@ -28,6 +29,13 @@ def train_model(train_data, model, args):
 		#											 tot))
 		print('Train loss: {}'.format(loss))
 		torch.save(model, args.save_path)	
+
+		print('Evaluating on dev')
+		evaluate.evaluate(model, dev_data, args)
+
+		print('Evaluating on test')
+		evaluate.evaluate(model, test_data, args)
+
 	
 
 def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):

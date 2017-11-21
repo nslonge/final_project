@@ -126,9 +126,6 @@ def evaluate(model, data, args):
 		cos2 = nn.CosineSimilarity(dim=2)
 		s_s = cos2(qs,ps) 
 	
-		pdb.set_trace()
-		print('test')
-	
 	map, mrr, p1, p5 = score(s_s, pos)
 	print('MAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\n'.format(map,mrr,p1,p5))
 

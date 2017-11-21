@@ -22,7 +22,7 @@ class CNN(nn.Module):
 		self.embed.weight.requires_grad=False
 
 		# convolution step
-		self.convs1 = nn.ModuleList([nn.Conv2d(Ci, Co, (K, D)) for K in Ks])
+		self.convs1 = nn.ModuleList([nn.Conv2d(Ci, Co, (K, D), bias=False) for K in Ks])
 
 	def forward(self, x):
 		x = self.embed(x) # (N,W,D) (bs, 38, 200)
@@ -72,7 +72,6 @@ class LSTM(nn.Module):
 			autograd.Variable(torch.zeros(1, len(x), self.args.hidden_size)))
 		
 		out, hidden = self.lstm(x, hidden)
-#		_, h_k = self.lstm(packed, (h0, c0))
 		
 		out = out.permute(0,2,1)		# swap axes
 		

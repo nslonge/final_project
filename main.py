@@ -59,7 +59,7 @@ def main():
 		elif args.model == 'cnn':
 			mod = model.CNN(args, embeddings)
 		# train model
-		res = train.train_model(train_data, mod, args)
+		res = train.train_model(train_data, dev_data, test_data, mod, args)
 	else :
 		print('\nLoading model from [%s]...' % args.snapshot)
 		try:

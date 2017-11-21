@@ -10,6 +10,7 @@ import collections
 PATH="askubuntu-master/text_tokenized.txt.gz"
 PATH2 = "askubuntu-master/{}_random.txt"
 
+torch.manual_seed(1)
 #inherit from torch Dataset class, so i can make batches
 class FullDataset(data.Dataset):
 	def __init__(self, name, word_to_indx, embeddings, args):
