@@ -41,12 +41,16 @@ class FullDataset(data.Dataset):
 		idx_to_cand = {}
 		with open(path) as file:
 			lines = file.readlines()
-			for line in lines:#[:1000]:
+			#TODO: full data
+			for line in lines[:200]:
 				line = line.split('\t')
 				idx = int(line[0])
 				pos = map(lambda x: int(x), line[1].split())
 				neg = map(lambda x: int(x), line[2].split())
 				#neg = filter(lambda x: x <> pos, neg)
+				
+				#TODO: randomize
+				
 				neg = neg[:args.neg_samples]
 				idx_to_cand[idx] = (pos,neg)
 			file.close()

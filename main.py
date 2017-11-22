@@ -7,7 +7,6 @@ import train
 import torch
 import operator
 import pdb
-import evaluate
 
 # model parameters
 parser = argparse.ArgumentParser(description=
@@ -27,7 +26,7 @@ parser.add_argument('--shuffle', action='store_true', default=False, help='shuff
 parser.add_argument('--embed-dim', type=int, default=200, help='number of embedding dimension [default: 200]')
 parser.add_argument('--kernel-num', type=int, default=100, help='number of each kind of kernel')
 parser.add_argument('--kernel-sizes', type=str, default='3,4,5', help='comma-separated kernel size to use for convolution')
-parser.add_argument('--neg_samples', type=int, default=100, help='number of negative samples to use in training')
+parser.add_argument('--neg_samples', type=int, default=20, help='number of negative samples to use in training')
 parser.add_argument('--static', action='store_true', default=False, help='fix the embedding')
 parser.add_argument('--hidden-size', type=int, default=100, help='number of hidden layer size')
 # device
@@ -59,8 +58,8 @@ def main():
 		elif args.model == 'cnn':
 			mod = model.CNN(args, embeddings)
 		# train model
-		res = train.train_model(train_data, dev_data, test_data, mod, args)
-	else :
+		train.train_model(train_data, dev_data, test_data, mod, args)
+	else:
 		print('\nLoading model from [%s]...' % args.snapshot)
 		try:
 			mod = torch.load(args.snapshot)
@@ -68,12 +67,8 @@ def main():
 			print("Sorry, This snapshot doesn't exist."); exit()
 		print(mod)
 	
-	# evaluate
-	print('Evaluating on dev')
-	evaluate.evaluate(mod, dev_data, args)
-
-	print('Evaluating on test')
-	evaluate.evaluate(mod, test_data, args)
+        	# evaluate on dev and test
+        	train.train_model(train_data, dev_data, test_data, mod, args, only_eval=True)
 
 
 if __name__=="__main__":
