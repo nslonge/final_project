@@ -10,18 +10,17 @@ import datetime
 import pdb
 import numpy as np
 
+
 def MAP(scores):
 	# scores: ([(score, is_pos, orig_idx), ...], tot_pos) 
 	scores, tot_pos = scores
 	cor = 0
-	ap = []
+	ap = 0
 	for i, (score, is_pos, _) in enumerate(scores):
 		cor+=is_pos
-		ap.append(float(cor)/(i+1))
-		tot_pos-=is_pos
-		if tot_pos == 0:
-			break
-	return sum(ap)/float(len(ap)) 
+		precision = cor/float(i+1)
+		ap += precision*is_pos
+	return ap/float(tot_pos) 
 
 def P(scores, n):
 	# scores: ([(score, is_pos, orig_idx), ...], tot_pos) 
@@ -53,15 +52,6 @@ def score(s_s, pos_idxs):
 	P5s = map(lambda x: P(x, 5), scores)
 	avg = lambda x: sum(x)/float(len(x))
 	return avg(MAPs), avg(MRRs), avg(P1s), avg(P5s)
-
-#def MRR(s_s, pos_idxs):
-#	return
-
-#def P1(s_s, pos_idxs):
-#	return
-
-#def P2(s_s, pos_idxs):
-#	return
 
 def get_sample(idx_to_cand, idx_to_vec, ids, titles):
 	pos_batch = []
@@ -114,7 +104,7 @@ def evaluate(model, data, args):
 		
 		ps = ps.contiguous().view(-1,38)
 		ps = model(ps)
-		
+	
 		if args.model == 'cnn':
 			ps = ps.contiguous().view(args.neg_samples,-1,
 									  len(args.kernel_sizes) * args.kernel_num)
@@ -125,7 +115,7 @@ def evaluate(model, data, args):
 		qs = q.repeat(args.neg_samples,1,1)
 		cos2 = nn.CosineSimilarity(dim=2)
 		s_s = cos2(qs,ps) 
-	
+
 	map, mrr, p1, p5 = score(s_s, pos)
 	print('MAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\n'.format(map,mrr,p1,p5))
 

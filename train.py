@@ -30,7 +30,7 @@ def train_model(train_data, dev_data, test_data, model, args):
 		print('Train loss: {}'.format(loss))
 		torch.save(model, args.save_path)	
 
-		print('Evaluating on dev')
+		print('\nEvaluating on dev')
 		evaluate.evaluate(model, dev_data, args)
 
 		print('Evaluating on test')
