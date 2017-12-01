@@ -117,9 +117,9 @@ def get_scores(data):
 
 def main():
     # paths
-    andr_text = 'Android-master/corpus.tsv'
+    andr_text = 'Android-master/corpus.txt'
     andr_path = 'Android-master/'
-    aub_text = 'askubuntu-master/text_tokenized 2.txt'
+    aub_text = 'askubuntu-master/corpus.txt'
     aub_path = 'askubuntu-master/' 
 
     # initalize dataset
