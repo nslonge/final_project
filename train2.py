@@ -50,10 +50,10 @@ def train_model(s_train, s_dev, s_test,
 		evaluate.q_evaluate(q_model, t_test, args)
 
                 print('Evaluating domain classifier on dev')
-		evaluate.d_evaluate(q_model, s_dev, t_dev)
+		evaluate.d_evaluate(q_model, d_model, s_dev, t_dev)
 
                 print('Evaluating domain classifier on test')
-		evaluate.d_evaluate(q_model, s_test, t_test)
+		evaluate.d_evaluate(q_model, d_model, s_test, t_test)
 
 
 	
@@ -104,7 +104,7 @@ def mmloss(q, p_plus, ps, args):
 	scores = s_s-s_0+delta # (neg_samples, bs)
 	score,_ = torch.max(scores,0)
 	return torch.mean(score)
-    
+
 def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
 
 	# load random batches
@@ -131,9 +131,10 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
 	for s_batch in tqdm(source_data):
             # load data
             s_ids = s_batch['id']
-            s_titles = s_batch['title']
-
+            s_titles = s_batch['title'] 
+            
             # -------------- Task Classifier ----------------------------
+            
             titles, pos, neg = get_pos_neg(s_data.idx_to_cand,
                                           lambda x: s_data.idx_to_vec[x][0],
                                            s_ids, s_titles)
@@ -141,7 +142,9 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
             q = autograd.Variable(titles)
             p_plus = autograd.Variable(pos)
             ps = autograd.Variable(neg)
-                    
+            
+            q_opt.zero_grad()
+        
             # run the batch through the model
             q = q_model(q)
             p_plus = q_model(p_plus)
@@ -155,32 +158,40 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
                     ps = ps.contiguous().view(args.neg_samples+1,-1, 
                                               args.hidden_size)
 
+            # update model
             loss1 = mmloss(q, p_plus, ps, args)			
             loss1.backward()
             q_opt.step()
-
+            losses1.append(loss1.cpu().data[0])
+            
             # ---------------------- Domain Classifier -------------------
+            
+            x = s_titles
+            y1 = torch.LongTensor((s_titles.shape[0])).fill_(1)
+
             # fewer target data points, so check if we have one
-            try: t_batch = target_data.next()
+            try: 
+                t_batch = target_data.next()
+                t_titles = t_batch['title']
+                x = torch.cat([s_titles,t_titles],0)
+                y0 = torch.LongTensor((t_titles.shape[0])).fill_(0)
+                y = torch.cat([y1,y0],0) 
             except : continue
             
-            t_titles = t_batch['title']
-            x = torch.cat([s_titles,t_titles],0)
             x = autograd.Variable(x)
-            
-            y1 = torch.ones((s_titles.shape[0]))
-            y2 = torch.zeros((t_titles.shape[0]))
-            y = torch.cat([y1,y2],0) 
             y = autograd.Variable(y)           
- 
+
+            q_opt.zero_grad()
             d_opt.zero_grad()
-           
-            out = d_model(x)
-            loss2 = criterion(x,y)			
+          
+            out = q_model(x) 
+            out = d_model(out)
+       
+            loss2 = criterion(out,y)			
             loss2.backward()
             d_opt.step()
+            q_opt.step()
 
-            losses1.append(loss1.cpu().data[0])
             losses2.append(loss2.cpu().data[0])
 
 	# Calculate epoch level scores

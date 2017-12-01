@@ -93,30 +93,20 @@ class DomainClassifier(nn.Module):
         super(DomainClassifier, self).__init__()
         self.args = args
 		
-        V = args.embed_num
-        D = args.embed_dim
+        insize = 0
+        if args.model == 'lstm':
+            insize = args.hidden_size
+        else:
+            insize = args.kernel_num
 
-        # initialize embedding layer 
-        self.embed = nn.Embedding(V, D)
-        self.embed.weight.data = torch.from_numpy(embeddings)
-        self.embed.weight.requires_grad=False
-
-        self.fc1 = nn.Linear(D, args.domain_size) 
+        self.fc1 = nn.Linear(insize, args.domain_size)
         self.fc2 = nn.Linear(args.domain_size, 2)
-        self.softmax = nn.LogSoftmax()
         self.drop = nn.Dropout2d(0.25)
+        self.softmax = nn.LogSoftmax()
     
     def forward(self, x):
-        x = self.embed(x)
-        x = grad_reverse(x, self.args.lambd)
-        x = F.leaky_relu(self.drop(self.fc1(x)))
+        x = self.drop(self.fc1(x))
+        x = F.leaky_relu(x)
         x = self.fc2(x)
         x = self.softmax(x)
         return x 
-
-
-
-
-
-
-

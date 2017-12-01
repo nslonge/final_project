@@ -80,7 +80,7 @@ def get_sample(idx_to_cand, idx_to_vec, ids, titles):
 		   pos_batch,\
 		   torch.LongTensor(neg_batch)
 
-def d_evaluate(model, s_data, t_data):
+def d_evaluate(q_model, d_model, s_data, t_data):
     source_data = torch.utils.data.DataLoader(
                     s_data,
                     batch_size=s_data.__len__(),
@@ -109,12 +109,11 @@ def d_evaluate(model, s_data, t_data):
         y0 = np.zeros((t_titles.shape[0]))
         y = np.concatenate([y1, y0])
       
-        pdb.set_trace() 
-        out = model(x)
-        out = out.data.topk(1).numpy()
-
-        pdb.set_trace()
-
+        out = q_model(x)
+        out = d_model(out)
+        out = out.data.numpy().tolist()
+        out = [[int(i[0] < i[1])] for i in out]
+        
         precision = precision_score(y, out)        
         recall = recall_score(y, out)        
         accuracy = accuracy_score(y, out)        
