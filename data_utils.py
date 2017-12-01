@@ -7,39 +7,28 @@ import tqdm
 import pdb
 import collections
 
-PATH="askubuntu-master/text_tokenized.txt.gz"
-PATH2 = "askubuntu-master/{}_random.txt"
-
 torch.manual_seed(1)
 #inherit from torch Dataset class, so i can make batches
 class FullDataset(data.Dataset):
-	def __init__(self, name, word_to_indx, embeddings, args):
-		self.name = name
+	def __init__(self, name, data_set, word_to_indx, embeddings, args):
+		self.path = '{}/{}.txt'.format(data_set,name)	
 		self.dataset = []
 		self.word_to_indx  = word_to_indx
-		self.max_length = 38
 		self.idx_to_vec = {}
 
-		self.idx_to_cand = self.load_cand_sets(args,name)
+		self.idx_to_cand = self.load_cand_sets(args)
 
-		with gzip.open(PATH) as file:
+		with gzip.open('{}/corpus.txt.gz'.format(data_set)) as file:
 			lines = file.readlines()
 			for line in tqdm.tqdm(lines):
-				sample = self.processLine(line,embeddings)
+				sample = self.processLine(line,embeddings,args)
 				if sample <> None:
 					self.dataset.append(sample)
 			file.close()
 
-	def load_cand_sets(self, args, name):
-		if name == 'train':
-			path = PATH2.format(self.name)
-		elif name == 'dev':
-			path = 'askubuntu-master/dev.txt'
-		elif name == 'test':
-			path = 'askubuntu-master/test.txt'
-
+	def load_cand_sets(self, args):
 		idx_to_cand = {}
-		with open(path) as file:
+		with open(self.path) as file:
 			lines = file.readlines()
 			for line in lines:#[:1000]:
 				line = line.split('\t')
@@ -53,15 +42,22 @@ class FullDataset(data.Dataset):
 		return idx_to_cand
 			
 	## Convert one line from dataset to {Text, Tensor, Labels}
-	def processLine(self, line, embeddings):
+	def processLine(self, line, embeddings, args):
 		line = line.split('\t')
 		id = int(line[0])
 		title = line[1].split()
-		#body = line[2].split()
+		x =  getIndicesTensor(title, self.word_to_indx, args.max_title)
+                sample = {'id':id, 'title':x}
 
-		x =  getIndicesTensor(title, self.word_to_indx, self.max_length)
-		sample = {'id':id, 'title':x}
-		self.idx_to_vec[id] = x
+                # if needed, load body
+                y = None
+                if args.use_body:
+		    body = line[2].split()
+		    y =  getIndicesTensor(body, self.word_to_indx, 
+                                          args.max_body)
+		    sample = {'id':id, 'title':x, 'body':y}
+		
+                self.idx_to_vec[id] = (x,y)
 		if not id in self.idx_to_cand:
 			return None
 		return sample
@@ -76,8 +72,7 @@ class FullDataset(data.Dataset):
 # load each document into 1 x max_length tensor, with word index entries
 def getIndicesTensor(text_arr, word_to_indx, max_length):
 	nil_indx = 0
-	text_indx = [word_to_indx[x] if x in word_to_indx 
-								 else nil_indx for x in text_arr]
+	text_indx = [word_to_indx[x] if x in word_to_indx else nil_indx for x in text_arr][:max_length]
 	if len(text_indx) < max_length:
 		text_indx.extend([nil_indx for _ in range(max_length-len(text_indx))])
 
@@ -86,8 +81,8 @@ def getIndicesTensor(text_arr, word_to_indx, max_length):
 	return x
 
 # load embedding for each word
-def getEmbeddingTensor():
-	embedding_path='askubuntu-master/vector/vectors_pruned.200.txt.gz'
+def getEmbeddingTensor(args):
+	embedding_path='askubuntu-master/vector/vectors_pruned.{}.txt.gz'.format(args.embed_dim)
 	lines = []
 	with gzip.open(embedding_path) as file:
 		lines = file.readlines()
@@ -109,13 +104,13 @@ def getEmbeddingTensor():
 
 
 # Build dataset
-def load_dataset(args):
+def load_dataset(args, data_set):
 	print("\nLoading data...")
-	embeddings, word_to_indx = getEmbeddingTensor()
+	embeddings, word_to_indx = getEmbeddingTensor(args)
 
 	# load questions
-	train_data = FullDataset('train', word_to_indx,embeddings, args)
-	dev_data = FullDataset('dev', word_to_indx, embeddings, args)
-	test_data = FullDataset('test', word_to_indx, embeddings, args)
+	train_data = FullDataset('train',data_set,word_to_indx,embeddings,args)
+	dev_data = FullDataset('dev',data_set,word_to_indx,embeddings,args)
+	test_data = FullDataset('test',data_set,word_to_indx,embeddings,args)
 	return train_data, dev_data, test_data, embeddings
 
