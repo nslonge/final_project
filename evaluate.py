@@ -23,10 +23,6 @@ def MAP(scores):
 		ap += precision*is_pos
 	return ap/float(tot_pos) 
 
-
-#TODO: modify P@5 -- for target domain (i.e. Android), current method 
-#	  always get <0.2 (because there is only one candidate)
-	
 def P(scores, n):
 	# scores: ([(score, is_pos, orig_idx), ...], tot_pos) 
 	scores, tot_pos = scores
@@ -104,38 +100,26 @@ def d_evaluate(q_model, d_model, s_data, t_data):
     accuracy = 0
 
     for s_batch, t_batch in tqdm(zip(source_data,target_data)):
-        s_ids = s_batch['id']
-        t_ids = t_batch['id']
         s_titles = s_batch['title']
-        t_titles = t_batch['title']		
-		
-        # sample from the titles, basically doing the same thing as q_eval to get feature (i.e. output from model)
-        s_titles, pos, neg = get_sample(s_data.idx_to_cand,
-                                      lambda x: s_data.idx_to_vec[x][0], 
-                                      s_ids, s_titles)
-        t_titles, pos, neg = get_sample(t_data.idx_to_cand,
-                                      lambda x: t_data.idx_to_vec[x][0], 
-                                      t_ids, t_titles)
+        t_titles = t_batch['title']
         x = torch.cat([s_titles, t_titles], 0)
         x = autograd.Variable(x)
-		
-        # domain labels
-        y_s = np.ones(len(s_titles))
-        y_t = np.zeros(len(t_titles))
-        y = np.concatenate([y_s, y_t])
 
-        # title -> feature -> prob. of domain labels -> predicted class
+        y1 = np.ones((s_titles.shape[0]))
+        y0 = np.zeros((t_titles.shape[0]))
+        y = np.concatenate([y1, y0])
+      
         out = q_model(x)
         out = d_model(out)
         out = out.data.numpy().tolist()
-        out = [[int(i[0] < i[1])] for i in out]		# predicted to be more likely from source
+        out = [[int(i[0] < i[1])] for i in out]
         
         precision = precision_score(y, out)        
         recall = recall_score(y, out)        
-        accuracy = accuracy_score(y, out)
-		
-    print('Domain Classification:\nPrecision: {}\nRecall: {}\nAccuracy: {}\n'.format(precision, recall, accuracy))
+        accuracy = accuracy_score(y, out)        
 
+    print('Domain Classification:\nPrecision: {}\nRecall: {}\nAccuracy: {}\n'.format(precision, recall, accuracy))
+ 
 
 def q_evaluate(model, data, args):
     #load single mini-batch
@@ -195,6 +179,7 @@ def q_evaluate(model, data, args):
                     ps = ps.contiguous().view(args.neg_samples+1,-1,
                                               args.hidden_size)
             q = (q+q_b)/2.0
+            p_plus = (p_plus+p_plus_b)/2.0
             ps = (ps+ps_b)/2.0
 
         # get cosine similarities	
@@ -204,3 +189,5 @@ def q_evaluate(model, data, args):
 
     map, mrr, p1, p5 = score(s_s, pos)
     print('Similarity Task:\nMAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\n'.format(map,mrr,p1,p5))
+
+

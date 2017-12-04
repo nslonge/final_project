@@ -21,10 +21,11 @@ def train_model(s_train, s_dev, s_test,
 	q_parameters = filter(lambda p: p.requires_grad, q_model.parameters())
 	d_parameters = filter(lambda p: p.requires_grad, d_model.parameters())
 
-	optimizer = None
-	q_opt = torch.optim.Adam(q_parameters,lr=args.lr)
-	d_opt = torch.optim.Adam(d_parameters,lr=args.lr)
+        optimizer = None
+        q_opt = torch.optim.Adam(q_parameters,lr=args.lr)
+        d_opt = torch.optim.Adam(d_parameters,lr=args.lr)
 
+	scores = []
 	for epoch in range(1, args.epochs+1):
 		print("-------------\nEpoch {}:\n".format(epoch))
 
@@ -34,8 +35,7 @@ def train_model(s_train, s_dev, s_test,
                                         q_opt, d_opt, args)
 
 		print('Train loss: {}, {}'.format(loss1, loss2))
-#		torch.save(q_model, args.save_path)
-#		torch.save(d_model, args.save_path)
+		#torch.save(q_model, args.save_path)	
 
 		print('\nEvaluating on source dev')
 		evaluate.q_evaluate(q_model, s_dev, args)
@@ -43,16 +43,16 @@ def train_model(s_train, s_dev, s_test,
 		print('Evaluating on source test')
 		evaluate.q_evaluate(q_model, s_test, args)
 
-		print('\nEvaluating on target dev')
+                print('\nEvaluating on target dev')
 		evaluate.q_evaluate(q_model, t_dev, args)
 
 		print('Evaluating on target test')
 		evaluate.q_evaluate(q_model, t_test, args)
 
-		print('\nEvaluating domain classifier on dev')
+                print('Evaluating domain classifier on dev')
 		evaluate.d_evaluate(q_model, d_model, s_dev, t_dev)
 
-		print('Evaluating domain classifier on test')
+                print('Evaluating domain classifier on test')
 		evaluate.d_evaluate(q_model, d_model, s_test, t_test)
 
 
@@ -114,7 +114,7 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
 		shuffle=True,
 		num_workers=4,
 		drop_last=True)
-	target_data = torch.utils.data.DataLoader(
+        target_data = torch.utils.data.DataLoader(
 		t_data,
 		batch_size=args.batch_size,
 		shuffle=True,
@@ -125,7 +125,7 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
 	losses1 = []
 	losses2 = []
 
-	criterion = torch.nn.NLLLoss()
+        criterion = torch.nn.NLLLoss()
 
 	# train on each batch
 	for s_batch in tqdm(source_data):
@@ -166,29 +166,16 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
             
             # ---------------------- Domain Classifier -------------------
             
-#            x = s_titles
-            y_s = torch.LongTensor((s_titles.shape[0])).fill_(1)
+            x = s_titles
+            y1 = torch.LongTensor((s_titles.shape[0])).fill_(1)
 
             # fewer target data points, so check if we have one
-			
-			#TODO: perhaps using zip as in d_eval is a better way? but we
-			#	   may have to resample in source as well
-			
             try: 
-				t_batch = target_data.next()
-				t_ids = t_batch['id']
-				t_titles = t_batch['title']
-				titles, _ = get_pos_neg(t_data.idx_to_cand,
-								   lambda x: t_data.idx_to_vec[x][0],
-								   t_ids, t_titles)
-				q_t = autograd.Variable(titles)
-				q_t = q_model(q_t)
-				
-				# domain discriminator takes model outputs as features
-				x = torch.cat([q, q_t],0)
-				# predicts domain classifier
-				y_t = torch.LongTensor((t_titles.shape[0])).fill_(0)
-				y = torch.cat([y_s,y_t],0) 
+                t_batch = target_data.next()
+                t_titles = t_batch['title']
+                x = torch.cat([s_titles,t_titles],0)
+                y0 = torch.LongTensor((t_titles.shape[0])).fill_(0)
+                y = torch.cat([y1,y0],0) 
             except : continue
             
             x = autograd.Variable(x)
