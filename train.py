@@ -29,7 +29,6 @@ def train_model(train_data, dev_data, test_data, model, args):
         elif args.optimizer == 'asgd':
             optimizer = torch.optim.ASGD(parameters,lr=args.lr)
 
-	scores = []
 	for epoch in range(1, args.epochs+1):
 		print("-------------\nEpoch {}:\n".format(epoch))
 
@@ -39,7 +38,7 @@ def train_model(train_data, dev_data, test_data, model, args):
 		#											 guess,
 		#											 tot))
 		print('Train loss: {}'.format(loss))
-		torch.save(model, args.save_path)	
+		torch.save(model, args.save_path)
 
 		print('\nEvaluating on dev')
 		evaluate.q_evaluate(model, dev_data, args)

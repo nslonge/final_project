@@ -25,22 +25,22 @@ parser.add_argument('--epochs', type=int, default=10, help='number of epochs for
 parser.add_argument('--save-path', type=str, default='./mod.pkl', help='where to save the snapshot')
 parser.add_argument('--snapshot', type=str, default=None, help='filename of model snapshot [default: None]')
 parser.add_argument('--optimizer', type=str, default='adam', help='which optimizer to use: [default Adam]')
-parser.add_argument('--lr', type=float, default=0.01, help='initial learning rate [default: 0.001]')
+parser.add_argument('--lr', type=float, default=0.01, help='initial learning rate [default: 0.01]')
 
 # model parameters
-parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model?')
-parser.add_argument('--max-title', type=int, default=20, help='maximum title length [default: 38]')
-parser.add_argument('--avg-pool', type=str2bool, default=True, help='use mean or max pooling [default: False]')
-parser.add_argument('--delta', type=float, default=.01, help='delta for use in loss function')
-parser.add_argument('--lambd', type=float, default=.1, help='lambda value form use in gradient reversal')
+parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model? [default: cnn]')
+parser.add_argument('--max-title', type=int, default=20, help='maximum title length [default: 20]')
+parser.add_argument('--avg-pool', type=str2bool, default=True, help='use mean or max pooling [default: True]')
+parser.add_argument('--delta', type=float, default=.01, help='delta for use in loss function [default: 0.01]')
+parser.add_argument('--lambd', type=float, default=.1, help='lambda value form use in gradient reversal [default: 0.1]')
 parser.add_argument('--use-body', type=str2bool, default=False, help='use question body or just question title?')
 parser.add_argument('--max-body', type=int, default=100, help='maximum body length [default: 100]')
-parser.add_argument('--embed-dim', type=int, default=300, help='number of embedding dimension [default: 200]')
-parser.add_argument('--kernel-num', type=int, default=100, help='number of each kind of kernel')
+parser.add_argument('--embed-dim', type=int, default=300, help='number of embedding dimension [default: 300]')
+parser.add_argument('--kernel-num', type=int, default=100, help='number of each kind of kernel [default: 100]')
 parser.add_argument('--kernel-sizes', type=str, default='2,3,4', help='comma-separated kernel size to use for convolution')
-parser.add_argument('--hidden-size', type=int, default=100, help='number of hidden layer size')
-parser.add_argument('--domain-size', type=int, default=100, help='hidden layer size in domain classifier')
-parser.add_argument('--neg-samples', type=int, default=20, help='number of negative samples to use in training')
+parser.add_argument('--hidden-size', type=int, default=100, help='hidden layer size [default: 100]')
+parser.add_argument('--domain-size', type=int, default=100, help='hidden layer size in domain classifier [default: 100]')
+parser.add_argument('--neg-samples', type=int, default=20, help='number of negative samples to use in training [default; 20]')
 args = parser.parse_args()
 
 def main():
@@ -75,19 +75,32 @@ def main():
                                      dtrain_data, ddev_data, dtest_data,
                                      task_model, domain_model, args)
 	else :
-            print('\nLoading model from [%s]...' % args.snapshot)
-            try:
-                    mod = torch.load(args.snapshot)
-            except :
-                    print("Sorry, This snapshot doesn't exist."); exit()
-            print(mod)
-	
-            # evaluate
-            print('Evaluating on dev')
-            evaluate.evaluate(mod, dev_data, args)
+			print('\nLoading model from [%s]...' % args.snapshot)
+			try:
+				mod = torch.load(args.snapshot)
+			except :
+				print("Sorry, This snapshot doesn't exist."); exit()
+			print(mod)
 
-            print('Evaluating on test')
-            evaluate.evaluate(mod, test_data, args)
+			# evaluate
+			            
+			print('\nEvaluating on source dev')
+			evaluate.q_evaluate(task_model, sdev_data, args)
+			
+			print('Evaluating on source test')
+			evaluate.q_evaluate(task_model, stest_data, args)
+			
+			print('\nEvaluating on target dev')
+			evaluate.q_evaluate(task_model, ddev_data, args)
+			
+			print('Evaluating on target test')
+			evaluate.q_evaluate(task_model, dtest_data, args)
+			
+			print('\nEvaluating domain classifier on dev')
+			evaluate.d_evaluate(task_model, domain_model, sdev_data, ddev_data)
+			
+			print('Evaluating domain classifier on test')
+			evaluate.d_evaluate(task_model, domain_model, stest_data, dtest_data)
 
 if __name__=="__main__":
 	main()

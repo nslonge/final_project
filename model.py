@@ -97,7 +97,7 @@ class DomainClassifier(nn.Module):
         if args.model == 'lstm':
             insize = args.hidden_size
         else:
-            insize = args.kernel_num
+            insize = args.kernel_num * len(args.kernel_sizes)
 
         self.fc1 = nn.Linear(insize, args.domain_size)
         self.fc2 = nn.Linear(args.domain_size, 2)
@@ -106,6 +106,7 @@ class DomainClassifier(nn.Module):
     
     def forward(self, x):
         x = self.drop(self.fc1(x))
+        #TODO: add leaky parameter [current default neg_slope: 0.01]
         x = F.leaky_relu(x)
         x = self.fc2(x)
         x = self.softmax(x)
