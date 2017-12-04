@@ -10,6 +10,7 @@ from sklearn.metrics import precision_score, recall_score, accuracy_score
 import datetime
 import pdb
 import numpy as np
+import meter
 
 
 def MAP(scores):
@@ -43,6 +44,7 @@ def MRR(scores):
                 if scores[i][0] == 0.0: return 0
 	    	return 1/float(i+1)
 
+
 def score(s_s, pos_idxs):
 	s_s = s_s.data.numpy().T.tolist()
 	idxs = [i for i in range(len(s_s[0]))]
@@ -56,7 +58,10 @@ def score(s_s, pos_idxs):
 	P1s = map(lambda x: P(x, 1), scores)
 	P5s = map(lambda x: P(x, 5), scores)
 	avg = lambda x: sum(x)/float(len(x))
-	return avg(MAPs), avg(MRRs), avg(P1s), avg(P5s)
+	auc = meter.AUCMeter()
+	for i, (score, _) in enumerate(scores):
+		auc.add(np.array([s[0] for s in score]), np.array([s[1] for s in score]))
+	return avg(MAPs), avg(MRRs), avg(P1s), avg(P5s), auc.value(0.05)
 
 def get_sample(idx_to_cand, idx_to_vec, ids, titles):
 	pos_batch = []
@@ -187,7 +192,7 @@ def q_evaluate(model, data, args):
         cos2 = nn.CosineSimilarity(dim=2)
         s_s = cos2(qs,ps) 
 
-    map, mrr, p1, p5 = score(s_s, pos)
-    print('Similarity Task:\nMAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\n'.format(map,mrr,p1,p5))
+    map, mrr, p1, p5, auc = score(s_s, pos)
+    print('Similarity Task:\nMAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\nAUC(0.05): {}\n'.format(map,mrr,p1,p5,auc))
 
 
