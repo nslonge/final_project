@@ -27,6 +27,7 @@ parser.add_argument('--snapshot', type=str, default=None, help='filename of mode
 parser.add_argument('--optimizer', type=str, default='adam', help='which optimizer to use: [default Adam]')
 parser.add_argument('--lr', type=float, default=0.01, help='initial learning rate [default: 0.01]')
 parser.add_argument('--lr_d', type=float, default=0.01, help='initial learning rate for domain classifier [default: 0.01]')
+parser.add_argument('--full-eval', type=str2bool, default=True, help='run full adversarial domain adaptation')
 
 # model parameters
 parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model? [default: cnn]')

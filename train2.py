@@ -49,11 +49,12 @@ def train_model(s_train, s_dev, s_test,
 		print('Evaluating on target test')
 		evaluate.q_evaluate(q_model, t_test, args)
 
-                print('Evaluating domain classifier on dev')
-		evaluate.d_evaluate(q_model, d_model, s_dev, t_dev)
+                if args.full_eval:
+                    print('Evaluating domain classifier on dev')
+                    evaluate.d_evaluate(q_model, d_model, s_dev, t_dev)
 
-                print('Evaluating domain classifier on test')
-		evaluate.d_evaluate(q_model, d_model, s_test, t_test)
+                    print('Evaluating domain classifier on test')
+                    evaluate.d_evaluate(q_model, d_model, s_test, t_test)
 
 
 	
@@ -165,7 +166,8 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
             losses1.append(loss1.cpu().data[0])
             
             # ---------------------- Domain Classifier -------------------
-            
+            if not args.full_eval: losses2.append(0); continue          
+ 
             x = s_titles
             y1 = torch.LongTensor((s_titles.shape[0])).fill_(1)
 
