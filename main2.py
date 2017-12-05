@@ -75,33 +75,27 @@ def main():
                                      dtrain_data, ddev_data, dtest_data,
                                      task_model, domain_model, args)
 	else :
-			print('\nLoading model from [%s]...' % args.snapshot)
-			try:
-				mod = torch.load(args.snapshot)
-			except :
-				print("Sorry, This snapshot doesn't exist."); exit()
-			print(mod)
+            print('\nLoading model from [%s]...' % args.snapshot)
+            try:
+                    mod = torch.load(args.snapshot)
+            except :
+                    print("Sorry, This snapshot doesn't exist."); exit()
+            print(mod)
 
-			# evaluate
-			            
-			print('\nEvaluating on source dev')
-			evaluate.q_evaluate(task_model, sdev_data, args)
-			
-			print('Evaluating on source test')
-			evaluate.q_evaluate(task_model, stest_data, args)
-			
-			print('\nEvaluating on target dev')
-			evaluate.q_evaluate(task_model, ddev_data, args)
-			
-			print('Evaluating on target test')
-			evaluate.q_evaluate(task_model, dtest_data, args)
-			
-			print('\nEvaluating domain classifier on dev')
-			evaluate.d_evaluate(task_model, domain_model, sdev_data, ddev_data)
-			
-			print('Evaluating domain classifier on test')
-			evaluate.d_evaluate(task_model, domain_model, stest_data, dtest_data)
-
+            # evaluate
+                        
+            print('\nEvaluating on source dev')
+            evaluate.q_evaluate(mod, sdev_data, args)
+            
+            print('Evaluating on source test')
+            evaluate.q_evaluate(mod, stest_data, args)
+            
+            print('\nEvaluating on target dev')
+            evaluate.q_evaluate(mod, ddev_data, args)
+            
+            print('Evaluating on target test')
+            evaluate.q_evaluate(mod, dtest_data, args)
+            
 if __name__=="__main__":
 	main()
 
