@@ -4,6 +4,9 @@ from nltk.corpus import stopwords
 import numpy as np
 import pdb
 import evaluate
+import meter
+import gzip
+import sys
 
 class Dataset:
     def __init__(self, text_path, path, name):
@@ -34,7 +37,7 @@ class Dataset:
         idx2id = {}
         id2idx = {}
         # load documents
-        fp = open(self.text_path, 'rb')
+        fp = gzip.open(self.text_path, 'rb')
         for i, ln in enumerate(fp):
             ln = ln.strip().replace('\n','').split('\t')
             id = int(ln[0])
@@ -86,6 +89,7 @@ def get_scores(data):
     
     # get cosine similarity
     MAPs, MRRs, P1s, P5s = [],[],[],[]
+    auc = meter.AUCMeter()
     for id,(pos,neg) in data.id2posneg.iteritems():
         # total number of positive examples
         pn = len(pos)
@@ -111,30 +115,37 @@ def get_scores(data):
         MRRs.append(evaluate.MRR(cos_sim))
         P1s.append(evaluate.P(cos_sim,1))
         P5s.append(evaluate.P(cos_sim,5))
+	auc.add(np.array([s[0] for s in cos_sim[0]]), 
+                np.array([s[1] for s in cos_sim[0]]))
 
     avg = lambda x: sum(x)/float(len(x))
-    return avg(MAPs), avg(MRRs), avg(P1s), avg(P5s)
+    return avg(MAPs), avg(MRRs), avg(P1s), avg(P5s), auc.value(0.05)
 
 def main():
-    # paths
-    andr_text = 'Android-master/corpus.txt'
-    andr_path = 'Android-master/'
-    aub_text = 'askubuntu-master/corpus.txt'
-    aub_path = 'askubuntu-master/' 
+    ub_or_an = True
+    if len(sys.argv) == 2:
+        if sys.argv[1] == 'android': ub_or_an = False
+    text, path = None, None
+    if ub_or_an:
+        text = 'Android-master/corpus.txt.gz'
+        path = 'Android-master/'
+    else:
+        text = 'askubuntu-master/corpus.txt.gz'
+        path = 'askubuntu-master/' 
 
     # initalize dataset
-    dev_data = Dataset(aub_text, aub_path, 'dev')
-    test_data = Dataset(aub_text, aub_path, 'test')
+    dev_data = Dataset(text, path, 'dev')
+    test_data = Dataset(text, path, 'test')
 
     # get dev scores
-    MAP,MRR,P1,P5 = get_scores(dev_data)
+    MAP,MRR,P1,P5,auc = get_scores(dev_data)
     print('Dev set scores:')
-    print('MAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\n'.format(MAP,MRR,P1,P5))
+    print('MAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\nAUC(.05): {}\n'.format(MAP,MRR,P1,P5,auc))
 
     # get test scores
-    MAP,MRR,P1,P5 = get_scores(test_data)
+    MAP,MRR,P1,P5,auc = get_scores(test_data)
     print('Test set scores:')
-    print('MAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\n'.format(MAP,MRR,P1,P5))
+    print('MAP: {}\nMRR: {}\nP@1: {}\nP@5: {}\nAUC(.05): {}\n'.format(MAP,MRR,P1,P5,auc))
 
 if __name__=="__main__":
     main()

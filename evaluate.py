@@ -59,8 +59,9 @@ def score(s_s, pos_idxs):
 	P5s = map(lambda x: P(x, 5), scores)
 	avg = lambda x: sum(x)/float(len(x))
 	auc = meter.AUCMeter()
-	for i, (score, _) in enumerate(scores):
-		auc.add(np.array([s[0] for s in score]), np.array([s[1] for s in score]))
+	for (score, _) in scores:
+            auc.add(np.array([s[0] for s in score]), 
+                    np.array([s[1] for s in score]))
 	return avg(MAPs), avg(MRRs), avg(P1s), avg(P5s), auc.value(0.05)
 
 def get_sample(idx_to_cand, idx_to_vec, ids, titles):

@@ -23,7 +23,7 @@ def train_model(s_train, s_dev, s_test,
 
         optimizer = None
         q_opt = torch.optim.Adam(q_parameters,lr=args.lr)
-        d_opt = torch.optim.Adam(d_parameters,lr=args.lr)
+        d_opt = torch.optim.Adam(d_parameters,lr=args.lr_d)
 
 	scores = []
 	for epoch in range(1, args.epochs+1):
@@ -188,7 +188,7 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
             out = d_model(out)
        
             loss2 = criterion(out,y)			
-            loss2.backward()
+            loss2.backward(retain_graph=True)
             d_opt.step()
             q_opt.step()
 

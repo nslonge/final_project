@@ -23,6 +23,8 @@ class CNN(nn.Module):
             # convolution step
             self.convs1 = nn.ModuleList([nn.Conv2d(Ci, Co, (K, D), bias=False) for K in Ks])
 
+            self.drop = nn.Dropout2d(0.25)
+
 	def forward(self, x):
 		
             x = self.embed(x) # (N,W,D) (bs, 38, 200)
@@ -38,7 +40,7 @@ class CNN(nn.Module):
             else:
                 x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x] 
                                                     #[(N,Co), ...]*len(Ks)
-
+            #x = [self.drop(i) for i in x] 
             x = torch.cat(x, 1)
 
             return x 

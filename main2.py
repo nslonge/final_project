@@ -26,6 +26,7 @@ parser.add_argument('--save-path', type=str, default='./mod.pkl', help='where to
 parser.add_argument('--snapshot', type=str, default=None, help='filename of model snapshot [default: None]')
 parser.add_argument('--optimizer', type=str, default='adam', help='which optimizer to use: [default Adam]')
 parser.add_argument('--lr', type=float, default=0.01, help='initial learning rate [default: 0.01]')
+parser.add_argument('--lr_d', type=float, default=0.01, help='initial learning rate for domain classifier [default: 0.01]')
 
 # model parameters
 parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model? [default: cnn]')
