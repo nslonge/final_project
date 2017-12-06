@@ -59,6 +59,7 @@ class LSTM(nn.Module):
 		self.embed.weight.data = torch.from_numpy(embeddings)
 		self.embed.weight.requires_grad=False
         
+		# for bidirectional lstm, modify hidden size
 		self.hidden_size = args.hidden_size
 		if args.bidirectional:
 			self.hidden_size = args.hidden_size // 2
@@ -73,7 +74,7 @@ class LSTM(nn.Module):
 	def forward(self, x):
 		x = self.embed(x) # (N,W,D) 
 
-		if self.args.bidirectional:
+		if self.args.bidirectional:		# single layer for now
 			hidden = (autograd.Variable(torch.zeros(2, len(x), self.hidden_size)),
 			autograd.Variable(torch.zeros(2, len(x), self.hidden_size)))
 		else:
@@ -84,7 +85,10 @@ class LSTM(nn.Module):
 		
 		out = out.permute(0,2,1)		# swap axes
 		
-		return F.max_pool1d(out, out.size(2)).squeeze(2)
+		if self.args.avg_pool:
+			return F.avg_pool1d(out, out.size(2)).squeeze(2)
+		else:
+			return F.max_pool1d(out, out.size(2)).squeeze(2)
 
 class GradReverse(autograd.Function):
     def __init__(self, lambd):
