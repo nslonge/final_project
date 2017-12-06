@@ -32,7 +32,7 @@ parser.add_argument('--full-eval', type=str2bool, default=True, help='run full a
 # model parameters
 parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model? [default: cnn]')
 parser.add_argument('--max-title', type=int, default=20, help='maximum title length [default: 20]')
-parser.add_argument('--avg-pool', type=str2bool, default=True, help='use mean or max pooling [default: True]')
+parser.add_argument('--avg-pool', type=str2bool, default=False, help='use mean or max pooling [default: True]')
 parser.add_argument('--delta', type=float, default=.01, help='delta for use in loss function [default: 0.01]')
 parser.add_argument('--lambd', type=float, default=.1, help='lambda value form use in gradient reversal [default: 0.1]')
 parser.add_argument('--use-body', type=str2bool, default=False, help='use question body or just question title?')
