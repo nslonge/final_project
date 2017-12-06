@@ -61,15 +61,15 @@ class LSTM(nn.Module):
 		
 		self.lstm = nn.LSTM(input_size=D,
 				    hidden_size=args.hidden_size,
-				    num_layers=1,
+				    num_layers=args.hidden_layer,
 				    batch_first=True)
 		
 
 	def forward(self, x):
 		x = self.embed(x) # (N,W,D) 
  
-		hidden = (autograd.Variable(torch.zeros(1, len(x), self.args.hidden_size)),
-			autograd.Variable(torch.zeros(1, len(x), self.args.hidden_size)))
+		hidden = (autograd.Variable(torch.zeros(self.args.hidden_layer, len(x), self.args.hidden_size)),
+			autograd.Variable(torch.zeros(self.args.hidden_layer, len(x), self.args.hidden_size)))
 		
 		out, hidden = self.lstm(x, hidden)
 		

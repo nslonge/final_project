@@ -39,6 +39,7 @@ parser.add_argument('--kernel-num', type=int, default=100, help='number of each 
 parser.add_argument('--kernel-sizes', type=str, default='3,4,5', help='comma-separated kernel size to use for convolution')
 parser.add_argument('--neg-samples', type=int, default=20, help='number of negative samples to use in training [default: 20]')
 parser.add_argument('--hidden-size', type=int, default=240, help='hidden layer size for lstm [default: 240]')
+parser.add_argument('--hidden-layer', type=int, default=1, help='hidden layer number for lstm [default: 1]')
 # device
 # option
 parser.add_argument('--snapshot', type=str, default=None, help='filename of model snapshot [default: None]')
