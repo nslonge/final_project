@@ -82,7 +82,10 @@ def mmloss(q, p_plus, ps, args):
 	cos2 = nn.CosineSimilarity(dim=2)
 	s_s = cos2(qs,ps) # (neg_samples, bs)
 
-	# compute delta tensor 
+        #y = autograd.Variable(torch.LongTensor((s_s.data.shape[1])).fill_(0))
+        #return torch.transpose(s_s,0,1), y
+        
+	# compute delta tensor
 	bs = s_0.data.shape[0]
 	delta = np.array([0.0]+[args.delta for _ in range(args.neg_samples)])
 	delta = np.tile(delta, (bs,1))
@@ -93,7 +96,8 @@ def mmloss(q, p_plus, ps, args):
 	s_0 = s_0.repeat(args.neg_samples+1,1) # (neg_samples, bs)
 	scores = s_s-s_0+delta # (neg_samples, bs)
 	score,_ = torch.max(scores,0)
-	return torch.mean(score)
+        return torch.mean(score)
+
 
 def run_epoch(data, is_training, model, optimizer, args):
 	# load random batches
@@ -105,6 +109,7 @@ def run_epoch(data, is_training, model, optimizer, args):
 		drop_last=True)
 
 	losses = []
+        criterion = nn.MultiMarginLoss()
 
 	# train on each batch
 	for batch in tqdm(data_loader):
@@ -162,7 +167,8 @@ def run_epoch(data, is_training, model, optimizer, args):
                     p_plus = (p_plus+p_plus_b)/2.0
                     ps = (ps+ps_b)/2.0
 
-		loss = mmloss(q, p_plus, ps, args)			
+                loss = mmloss(q, p_plus, ps, args)
+
 
 		# back-propegate to compute gradient
 		loss.backward()

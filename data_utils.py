@@ -11,35 +11,36 @@ torch.manual_seed(1)
 #inherit from torch Dataset class, so i can make batches
 class FullDataset(data.Dataset):
 	def __init__(self, name, data_set, word_to_indx, embeddings, args):
-		self.path = '{}/{}.txt'.format(data_set,name)	
-		self.dataset = []
-		self.word_to_indx  = word_to_indx
-		self.idx_to_vec = {}
+            self.name = name
+            self.path = '{}/{}.txt'.format(data_set,name)	
+            self.dataset = []
+            self.word_to_indx  = word_to_indx
+            self.idx_to_vec = {}
 
-		self.idx_to_cand = self.load_cand_sets(args)
+            self.idx_to_cand = self.load_cand_sets(args)
 
-		with gzip.open('{}/corpus.txt.gz'.format(data_set)) as file:
-			lines = file.readlines()
-			for line in tqdm.tqdm(lines):
-				sample = self.processLine(line,embeddings,args)
-				if sample <> None:
-					self.dataset.append(sample)
-			file.close()
+            with gzip.open('{}/corpus.txt.gz'.format(data_set)) as file:
+                lines = file.readlines()
+                for line in tqdm.tqdm(lines):
+                        sample = self.processLine(line,embeddings,args)
+                        if sample <> None:
+                                self.dataset.append(sample)
+                file.close()
 
 	def load_cand_sets(self, args):
-		idx_to_cand = {}
-		with open(self.path) as file:
-			lines = file.readlines()
-			for line in lines:#[:1000]:
-				line = line.split('\t')
-				idx = int(line[0])
-				pos = map(lambda x: int(x), line[1].split())
-				neg = map(lambda x: int(x), line[2].split())
-				#neg = filter(lambda x: x <> pos, neg)
-				neg = neg[:args.neg_samples]
-				idx_to_cand[idx] = (pos,neg)
-			file.close()
-		return idx_to_cand
+            idx_to_cand = {}
+            with open(self.path) as file:
+                lines = file.readlines()
+                for line in lines:#[:1000]:
+                    line = line.split('\t')
+                    idx = int(line[0])
+                    pos = map(lambda x: int(x), line[1].split())
+                    neg = map(lambda x: int(x), line[2].split())
+                    #if self.name == 'train':
+                    neg = neg[:args.neg_samples]
+                    idx_to_cand[idx] = (pos,neg)
+                file.close()
+            return idx_to_cand
 			
 	## Convert one line from dataset to {Text, Tensor, Labels}
 	def processLine(self, line, embeddings, args):

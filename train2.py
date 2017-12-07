@@ -81,6 +81,19 @@ def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 		   torch.LongTensor(pos_batch),\
 		   torch.LongTensor(neg_batch)
 
+def mmloss2(q, p_plus, ps, args):
+        cos = nn.CosineSimilarity()
+	s_0 = cos(q, p_plus) # (bs)
+
+	# get [s(q,p_i),...]*neg_samples
+	qs = q.repeat(args.neg_samples+1,1,1) # (neg_samples,bs)
+	cos2 = nn.CosineSimilarity(dim=2)
+	s_s = cos2(qs,ps) # (neg_samples, bs)
+
+        y = autograd.Variable(torch.LongTensor((s_s.data.shape[1])).fill_(0))
+        return torch.transpose(s_s,0,1), y
+
+
 def mmloss(q, p_plus, ps, args):
 	#q: (bs,Co), p_plus: (bs, Co), ps: (neg_samples, bs, Co)	
 
@@ -126,7 +139,8 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
 	losses1 = []
 	losses2 = []
 
-        criterion = torch.nn.NLLLoss()
+        criterion1 = torch.nn.NLLLoss()
+        criterion2 = nn.MultiMarginLoss(margin = args.delta)
 
 	# train on each batch
 	for s_batch in tqdm(source_data):
@@ -160,7 +174,10 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
                                               args.hidden_size)
 
             # update model
-            loss1 = mmloss(q, p_plus, ps, args)			
+            #loss1 = mmloss(q, p_plus, ps, args)			
+            s_s, y = mmloss2(q, p_plus, ps, args)	
+            loss1 = criterion2(s_s,y)
+
             loss1.backward()
             q_opt.step()
             losses1.append(loss1.cpu().data[0])
