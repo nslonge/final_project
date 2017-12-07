@@ -23,7 +23,7 @@ def train_model(s_train, sd_train, s_dev, s_test,
 
         optimizer = None
         q_opt = torch.optim.Adam(q_parameters,lr=args.lr)
-        d_opt = torch.optim.Adam(d_parameters,lr=args.lr_d)
+        d_opt = torch.optim.Adam(d_parameters,lr=-args.lr_d)
 
 	scores = []
 	for epoch in range(1, args.epochs+1):
@@ -167,22 +167,25 @@ def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
 
             # update model
             loss1 = mmloss(q, p_plus, ps, args)			
-
-            loss1.backward()
-            q_opt.step()
             losses1.append(loss1.cpu().data[0])
-            
+           
+            # check if we should continue 
+            if not args.full_eval: 
+                loss1.backward()
+                q_opt.step()
+                losses2.append(0)
+                continue          
+                        
             # ---------------------- Domain Classifier -------------------
-            if not args.full_eval: losses2.append(0); continue          
- 
+             
             # sample from source and target domains
             x1 = source_domain_data.next()['title']
-            y1 = torch.LongTensor((s_titles.shape[0])).fill_(1)
+            y1 = torch.LongTensor((x1.shape[0])).fill_(1)
 
             x0 = target_domain_data.next()['title']
-            y0 = torch.LongTensor((t_titles.shape[0])).fill_(0)
+            y0 = torch.LongTensor((x0.shape[0])).fill_(0)
 
-            x = autograd.Variable(torch.cat([s_titles,t_titles],0))
+            x = autograd.Variable(torch.cat([x1,x0],0))
             y = autograd.Variable(torch.cat([y1,y0],0))
             
             q_opt.zero_grad()
@@ -192,7 +195,8 @@ def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
             out = d_model(out)
        
             loss2 = criterion(out,y)			
-            loss2.backward(retain_graph=True)
+            loss = loss1 - args.lambd * loss2
+            loss.backward()
             d_opt.step()
             q_opt.step()
 

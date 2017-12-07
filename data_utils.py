@@ -36,8 +36,10 @@ class FullDataset(data.Dataset):
                     idx = int(line[0])
                     pos = map(lambda x: int(x), line[1].split())
                     neg = map(lambda x: int(x), line[2].split())
+                    mx_samples = 20
                     if self.name == 'train':
-                        neg = neg[:args.neg_samples]
+                        mx_samples = args.neg_samples
+                    neg = neg[:mx_samples]
                     idx_to_cand[idx] = (pos,neg)
                 file.close()
             return idx_to_cand

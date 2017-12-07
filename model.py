@@ -120,7 +120,7 @@ class DomainClassifier(nn.Module):
         self.softmax = nn.LogSoftmax()
     
     def forward(self, x):
-        x = grad_reverse(x, self.args.lambd)
+        #x = grad_reverse(x, self.args.lambd)
         x = self.drop(self.fc1(x))
         #TODO: add leaky parameter [current default neg_slope: 0.01]
         x = F.leaky_relu(x)
