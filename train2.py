@@ -13,7 +13,7 @@ import evaluate
 
 torch.manual_seed(1)
 
-def train_model(s_train, s_dev, s_test, 
+def train_model(s_train, sd_train, s_dev, s_test, 
                 t_train, t_dev, t_test,
                 q_model, d_model, args):
 
@@ -30,7 +30,7 @@ def train_model(s_train, s_dev, s_test,
 		print("-------------\nEpoch {}:\n".format(epoch))
 
 		# train
-		loss1,loss2 = run_epoch(s_train, t_train, 
+		loss1,loss2 = run_epoch(s_train, sd_train, t_train, 
                                         q_model, d_model, 
                                         q_opt, d_opt, args)
 
@@ -56,8 +56,6 @@ def train_model(s_train, s_dev, s_test,
                     print('Evaluating domain classifier on test')
                     evaluate.d_evaluate(q_model, d_model, s_test, t_test)
 
-
-	
 def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 	pos_batch = []
 	neg_batch = []
@@ -80,19 +78,6 @@ def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 	return torch.LongTensor(new_titles),\
 		   torch.LongTensor(pos_batch),\
 		   torch.LongTensor(neg_batch)
-
-def mmloss2(q, p_plus, ps, args):
-        cos = nn.CosineSimilarity()
-	s_0 = cos(q, p_plus) # (bs)
-
-	# get [s(q,p_i),...]*neg_samples
-	qs = q.repeat(args.neg_samples+1,1,1) # (neg_samples,bs)
-	cos2 = nn.CosineSimilarity(dim=2)
-	s_s = cos2(qs,ps) # (neg_samples, bs)
-
-        y = autograd.Variable(torch.LongTensor((s_s.data.shape[1])).fill_(0))
-        return torch.transpose(s_s,0,1), y
-
 
 def mmloss(q, p_plus, ps, args):
 	#q: (bs,Co), p_plus: (bs, Co), ps: (neg_samples, bs, Co)	
@@ -119,31 +104,38 @@ def mmloss(q, p_plus, ps, args):
 	score,_ = torch.max(scores,0)
 	return torch.mean(score)
 
-def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
-
+def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
 	# load random batches
-	source_data = torch.utils.data.DataLoader(
+	source_query_data = torch.utils.data.DataLoader(
 		s_data,
 		batch_size=args.batch_size,
 		shuffle=True,
 		num_workers=4,
 		drop_last=True)
-        target_data = torch.utils.data.DataLoader(
-		t_data,
-		batch_size=args.batch_size,
+        domain_bs = t_data.__len__()/(s_data.__len__()/float(args.batch_size))
+        domain_bs = int(domain_bs) + 1
+        source_domain_data = torch.utils.data.DataLoader(
+		sd_data,
+		batch_size=domain_bs,
 		shuffle=True,
 		num_workers=4,
 		drop_last=True)
-        target_data = iter(target_data)
+        target_domain_data = torch.utils.data.DataLoader(
+		t_data,
+		batch_size=domain_bs,
+		shuffle=True,
+		num_workers=4,
+		drop_last=True)
+        source_domain_data = iter(source_domain_data)
+        target_domain_data = iter(target_domain_data)
 
 	losses1 = []
 	losses2 = []
 
-        criterion1 = torch.nn.NLLLoss()
-        criterion2 = nn.MultiMarginLoss(margin = args.delta)
+        criterion = torch.nn.NLLLoss()
 
 	# train on each batch
-	for s_batch in tqdm(source_data):
+	for s_batch in tqdm(source_query_data):
             # load data
             s_ids = s_batch['id']
             s_titles = s_batch['title'] 
@@ -174,9 +166,7 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
                                               args.hidden_size)
 
             # update model
-            #loss1 = mmloss(q, p_plus, ps, args)			
-            s_s, y = mmloss2(q, p_plus, ps, args)	
-            loss1 = criterion2(s_s,y)
+            loss1 = mmloss(q, p_plus, ps, args)			
 
             loss1.backward()
             q_opt.step()
@@ -185,21 +175,16 @@ def run_epoch(s_data, t_data, q_model, d_model, q_opt, d_opt, args):
             # ---------------------- Domain Classifier -------------------
             if not args.full_eval: losses2.append(0); continue          
  
-            x = s_titles
+            # sample from source and target domains
+            x1 = source_domain_data.next()['title']
             y1 = torch.LongTensor((s_titles.shape[0])).fill_(1)
 
-            # fewer target data points, so check if we have one
-            try: 
-                t_batch = target_data.next()
-                t_titles = t_batch['title']
-                x = torch.cat([s_titles,t_titles],0)
-                y0 = torch.LongTensor((t_titles.shape[0])).fill_(0)
-                y = torch.cat([y1,y0],0) 
-            except : continue
-            
-            x = autograd.Variable(x)
-            y = autograd.Variable(y)           
+            x0 = target_domain_data.next()['title']
+            y0 = torch.LongTensor((t_titles.shape[0])).fill_(0)
 
+            x = autograd.Variable(torch.cat([s_titles,t_titles],0))
+            y = autograd.Variable(torch.cat([y1,y0],0))
+            
             q_opt.zero_grad()
             d_opt.zero_grad()
           

@@ -55,10 +55,10 @@ def main():
 		print("\t{}={}".format(attr.upper(), value))
 	
 	# load data
-	strain_data, sdev_data, stest_data, embeddings =\
-                            data_utils.load_dataset(args, 'askubuntu-master')
+	strain_data, sd_train_data, sdev_data, stest_data, embeddings =\
+                data_utils.load_dataset(args, 'askubuntu-master', dtrain=True)
 	dtrain_data, ddev_data, dtest_data, _ =\
-                            data_utils.load_dataset(args, 'Android-master')
+                data_utils.load_dataset(args, 'Android-master')
 
 	# initalize necessary parameters
 	args.embed_num = embeddings.shape[0]
@@ -69,19 +69,21 @@ def main():
             # initalize model
             task_model = None
             if args.model == 'lstm':
-				if args.bidirectional and (args.hidden_layer > 1):
-					args.hidden_layer = 1
-					print('\nMultilayer bidirectional LSTM not supported yet, layer set to 1.\n')
-				task_model = model.LSTM(args, embeddings)
+                if args.bidirectional and (args.hidden_layer > 1):
+                    args.hidden_layer = 1
+                    print('\nMultilayer bidirectional LSTM not supported yet,\
+                            layer set to 1.\n')
+                task_model = model.LSTM(args, embeddings)
             elif args.model == 'cnn':
-				task_model = model.CNN(args, embeddings)
+                task_model = model.CNN(args, embeddings)
 
             domain_model = model.DomainClassifier(args, embeddings)
 
             # train models
-            res = train2.train_model(strain_data, sdev_data, stest_data, 
-                                     dtrain_data, ddev_data, dtest_data,
-                                     task_model, domain_model, args)
+            res = train2.train_model(strain_data, sd_train_data, sdev_data, 
+                                     stest_data, dtrain_data, ddev_data, 
+                                     dtest_data, task_model, 
+                                     domain_model, args)
 	else :
             print('\nLoading model from [%s]...' % args.snapshot)
             try:

@@ -36,8 +36,8 @@ class FullDataset(data.Dataset):
                     idx = int(line[0])
                     pos = map(lambda x: int(x), line[1].split())
                     neg = map(lambda x: int(x), line[2].split())
-                    #if self.name == 'train':
-                    neg = neg[:args.neg_samples]
+                    if self.name == 'train':
+                        neg = neg[:args.neg_samples]
                     idx_to_cand[idx] = (pos,neg)
                 file.close()
             return idx_to_cand
@@ -105,13 +105,18 @@ def getEmbeddingTensor(args):
 
 
 # Build dataset
-def load_dataset(args, data_set):
-	print("\nLoading data...")
-	embeddings, word_to_indx = getEmbeddingTensor(args)
+def load_dataset(args, data_set, dtrain=False):
+    print("\nLoading data...")
+    embeddings, word_to_indx = getEmbeddingTensor(args)
 
-	# load questions
-	train_data = FullDataset('train',data_set,word_to_indx,embeddings,args)
-	dev_data = FullDataset('dev',data_set,word_to_indx,embeddings,args)
-	test_data = FullDataset('test',data_set,word_to_indx,embeddings,args)
-	return train_data, dev_data, test_data, embeddings
+    # load questions
+    train_data = FullDataset('train',data_set,word_to_indx,embeddings,args)
+    dev_data = FullDataset('dev',data_set,word_to_indx,embeddings,args)
+    test_data = FullDataset('test',data_set,word_to_indx,embeddings,args)
+    if not dtrain:
+        return train_data, dev_data, test_data, embeddings
+    else: 
+        dtrain_data = FullDataset('d_train', data_set, word_to_indx, embeddings, args)
+    return train_data, dtrain_data, dev_data, test_data, embeddings   
+
 

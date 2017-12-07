@@ -157,11 +157,16 @@ def q_evaluate(model, data, args):
         ps = ps.contiguous().view(-1,args.max_title)
         ps = model(ps)
 
+        # for dev and test data, we want to evaluate on all data, not just
+        # first neg_samples data points
+        ns = neg.size(0)
+   
+ 
         if args.model == 'cnn':
-                ps = ps.contiguous().view(args.neg_samples,-1,
+                ps = ps.contiguous().view(ns,-1,
                                 len(args.kernel_sizes)*args.kernel_num)
         elif args.model == 'lstm':
-                ps = ps.contiguous().view(args.neg_samples,-1,
+                ps = ps.contiguous().view(ns,-1,
                                           args.hidden_size)
 
         # if needed, run computation on body
@@ -189,7 +194,7 @@ def q_evaluate(model, data, args):
             ps = (ps+ps_b)/2.0
 
         # get cosine similarities	
-        qs = q.repeat(args.neg_samples,1,1)
+        qs = q.repeat(ns,1,1)
         cos2 = nn.CosineSimilarity(dim=2)
         s_s = cos2(qs,ps) 
 
