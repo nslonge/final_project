@@ -42,6 +42,7 @@ parser.add_argument('--kernel-num', type=int, default=100, help='number of each 
 parser.add_argument('--kernel-sizes', type=str, default='2,3,4', help='comma-separated kernel size to use for convolution')
 parser.add_argument('--hidden-size', type=int, default=240, help='hidden layer size [default: 240]')
 parser.add_argument('--hidden-layer', type=int, default=1, help='hidden layer number for lstm [default: 1]')
+parser.add_argument('--bidirectional', type=str2bool, default=False, help='using bidirectional lstm [default: False]')
 parser.add_argument('--domain-size', type=int, default=100, help='hidden layer size in domain classifier [default: 100]')
 parser.add_argument('--neg-samples', type=int, default=20, help='number of negative samples to use in training [default; 20]')
 parser.add_argument('--decay-lr', type=str2bool, default=False, help='decay learning rate over time')
@@ -68,9 +69,12 @@ def main():
             # initalize model
             task_model = None
             if args.model == 'lstm':
-                    task_model = model.LSTM(args, embeddings)
+				if args.bidirectional and (args.hidden_layer > 1):
+					args.hidden_layer = 1
+					print('\nMultilayer bidirectional LSTM not supported yet, layer set to 1.\n')
+				task_model = model.LSTM(args, embeddings)
             elif args.model == 'cnn':
-                    task_model = model.CNN(args, embeddings)
+				task_model = model.CNN(args, embeddings)
 
             domain_model = model.DomainClassifier(args, embeddings)
 
