@@ -36,7 +36,7 @@ class FullDataset(data.Dataset):
                     idx = int(line[0])
                     pos = map(lambda x: int(x), line[1].split())
                     neg = map(lambda x: int(x), line[2].split())
-                    mx_samples = 20
+                    mx_samples = 100
                     if self.name == 'train':
                         mx_samples = args.neg_samples
                     neg = neg[:mx_samples]
@@ -59,7 +59,6 @@ class FullDataset(data.Dataset):
 		    y =  getIndicesTensor(body, self.word_to_indx, 
                                           args.max_body)
 		    sample = {'id':id, 'title':x, 'body':y}
-		
                 self.idx_to_vec[id] = (x,y)
 		if not id in self.idx_to_cand:
 			return None

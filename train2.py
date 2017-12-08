@@ -37,11 +37,11 @@ def train_model(s_train, sd_train, s_dev, s_test,
 		print('Train loss: {}, {}'.format(loss1, loss2))
 		#torch.save(q_model, args.save_path)	
 
-		print('\nEvaluating on source dev')
-		evaluate.q_evaluate(q_model, s_dev, args)
+		#print('\nEvaluating on source dev')
+		#evaluate.q_evaluate(q_model, s_dev, args)
 
-		print('Evaluating on source test')
-		evaluate.q_evaluate(q_model, s_test, args)
+		#print('Evaluating on source test')
+		#evaluate.q_evaluate(q_model, s_test, args)
 
                 print('\nEvaluating on target dev')
 		evaluate.q_evaluate(q_model, t_dev, args)
@@ -168,7 +168,9 @@ def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
             # update model
             loss1 = mmloss(q, p_plus, ps, args)			
             losses1.append(loss1.cpu().data[0])
-           
+            #loss1.backward()
+            #q_opt.step()
+
             # check if we should continue 
             if not args.full_eval: 
                 loss1.backward()
@@ -197,6 +199,7 @@ def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
             loss2 = criterion(out,y)			
             loss = loss1 - args.lambd * loss2
             loss.backward()
+            #loss2.backward(retain_graph=True)
             d_opt.step()
             q_opt.step()
 
