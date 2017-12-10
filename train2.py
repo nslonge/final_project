@@ -28,17 +28,13 @@ def train_model(s_train, sd_train, s_dev, s_test,
 	scores = []
 	for epoch in range(1, args.epochs+1):
 		print("-------------\nEpoch {}:\n".format(epoch))
-		if args.full_eval and not args.use_mmd:
-			print('\n\n\n####\n\n')
 
 		# train
 		loss1,loss2 = run_epoch(s_train, sd_train, t_train, 
                                         q_model, d_model, 
                                         q_opt, d_opt, args)
 
-		print(args.use_mmd)
-
-		print('Train loss: {}, {}'.format(loss1, loss2))
+		print('\nTrain loss: {}, {}'.format(loss1, loss2))
 		torch.save(q_model, './mod' + str(epoch) + '.pkl')#args.save_path)
 
 #		print('\nEvaluating on source dev')
@@ -129,7 +125,7 @@ def calc_mmd_loss(bottleneck, y):
 	phi_s = torch.mean(phi_s, dim=0, keepdim=True)	# (1, repr_len)
 	phi_t = torch.mean(phi_t, dim=0, keepdim=True)
 	
-	#TODO: parameterize p-norm
+	#TODO: parameterize p-norm in args
 	pdist = nn.PairwiseDistance(p=2)
 	mmd = pdist(phi_s, phi_t)
 	return mmd
@@ -243,7 +239,7 @@ def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
 				
             loss.backward()
 			
-            if args.use_mmd:
+            if not args.use_mmd:
 				d_opt.step()
 				
             q_opt.step()
