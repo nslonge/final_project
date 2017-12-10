@@ -39,10 +39,11 @@ def MRR(scores):
 	i = 0
 	while True:
 	    if scores[i][1] <> 1:
-	    	i+=1
+			i+=1
 	    else:
-                if scores[i][0] == 0.0: return 0
-	    	return 1/float(i+1)
+			if scores[i][0] == 0.0:
+				return 0
+		    	return 1/float(i+1)
 
 
 def score(s_s, pos_idxs):
@@ -51,7 +52,7 @@ def score(s_s, pos_idxs):
 	scores = [(sorted(zip(score, p_idxs, idxs), 
 			  key=lambda x:x[0], 
 			  reverse=True), 
-		    sum(p_idxs)) for (score,p_idxs) in zip(s_s,pos_idxs)]
+			  sum(p_idxs)) for (score,p_idxs) in zip(s_s,pos_idxs)]
 	#[((score, is_pos, orig_idx), tot_pos), ...]*bs
 	MAPs = map(lambda x: MAP(x), scores)
 	MRRs = map(lambda x: MRR(x), scores)
@@ -63,6 +64,7 @@ def score(s_s, pos_idxs):
             auc.add(np.array([s[0] for s in score]), 
                     np.array([s[1] for s in score]))
 	return avg(MAPs), avg(MRRs), avg(P1s), avg(P5s), auc.value(0.05)
+
 
 def get_sample(idx_to_cand, idx_to_vec, ids, titles):
 	pos_batch = []
@@ -85,6 +87,7 @@ def get_sample(idx_to_cand, idx_to_vec, ids, titles):
 	return torch.LongTensor(new_titles),\
 		   pos_batch,\
 		   torch.LongTensor(neg_batch)
+
 
 def d_evaluate(q_model, d_model, s_data, t_data):
     source_data = torch.utils.data.DataLoader(
@@ -114,7 +117,7 @@ def d_evaluate(q_model, d_model, s_data, t_data):
         y1 = np.ones((s_titles.shape[0]))
         y0 = np.zeros((t_titles.shape[0]))
         y = np.concatenate([y1, y0])
-      
+		
         out = q_model(x)
         out = d_model(out)
         out = out.data.numpy().tolist()
@@ -151,11 +154,16 @@ def q_evaluate(model, data, args):
         q = autograd.Variable(titles)
         ps = autograd.Variable(neg)
                 
-        # run the batch through the model
-        q = model(q)
-        
-        ps = ps.contiguous().view(-1,args.max_title)
-        ps = model(ps)
+        # run the batch through the model, rough version dealing with mmd
+        if 'use_mmd' not in args.__dict__ or not args.use_mmd:
+	        q = model(q)        
+	        ps = ps.contiguous().view(-1,args.max_title)
+	        ps = model(ps)
+        else:
+	        q, _ = model(q)        
+	        ps = ps.contiguous().view(-1,args.max_title)
+	        ps, _ = model(ps)
+				
 
         # for dev and test data, we want to evaluate on all data, not just
         # first neg_samples data points
@@ -179,9 +187,14 @@ def q_evaluate(model, data, args):
             q_b = autograd.Variable(bodies)
             ps_b = autograd.Variable(neg)
 
-            q_b = model(q_b)
-            ps_b = ps_b.contiguous().view(-1,args.max_body)
-            ps_b = model(ps_b)
+            if 'use_mmd' not in args.__dict__ or not args.use_mmd:
+	            q_b = model(q_b)
+	            ps_b = ps_b.contiguous().view(-1,args.max_body)
+	            ps_b = model(ps_b)
+            else:
+	            q_b, _ = model(q_b)
+	            ps_b = ps_b.contiguous().view(-1,args.max_body)
+	            ps_b, _ = model(ps_b)
             
             if args.model == 'cnn':
                     ps = ps.contiguous().view(args.neg_samples+1,-1,
@@ -189,8 +202,8 @@ def q_evaluate(model, data, args):
             elif args.model == 'lstm':
                     ps = ps.contiguous().view(args.neg_samples+1,-1,
                                               args.hidden_size)
+					
             q = (q+q_b)/2.0
-            p_plus = (p_plus+p_plus_b)/2.0
             ps = (ps+ps_b)/2.0
 
         # get cosine similarities	

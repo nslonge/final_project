@@ -27,7 +27,8 @@ parser.add_argument('--snapshot', type=str, default=None, help='filename of mode
 parser.add_argument('--optimizer', type=str, default='adam', help='which optimizer to use: [default Adam]')
 parser.add_argument('--lr', type=float, default=0.01, help='initial learning rate [default: 0.01]')
 parser.add_argument('--lr-d', type=float, default=0.01, help='initial learning rate for domain classifier [default: 0.01]')
-parser.add_argument('--full-eval', type=str2bool, default=True, help='run full adversarial domain adaptation')
+parser.add_argument('--full-eval', type=str2bool, default=True, help='run full adversarial domain adaptation [default: True]')
+parser.add_argument('--use-mmd', type=str2bool, default=False, help='use mmd for domain transfer [default: False]')
 
 # model parameters
 parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model? [default: cnn]')
@@ -46,14 +47,15 @@ parser.add_argument('--bidirectional', type=str2bool, default=False, help='using
 parser.add_argument('--domain-size', type=int, default=100, help='hidden layer size in domain classifier [default: 100]')
 parser.add_argument('--neg-samples', type=int, default=20, help='number of negative samples to use in training [default; 20]')
 parser.add_argument('--decay-lr', type=str2bool, default=False, help='decay learning rate over time')
+parser.add_argument('--bottleneck', type=float, default=0.5, help='size of bottleneck layer w.r.t. output [default: 0.5]')
+parser.add_argument('--lambda-mmd', type=float, default=0.0001, help='lambda for mmd loss [default: 0.0001]')
 args = parser.parse_args()
 
 def main():
-        #args.train_sim = False
 	print("\nParameters:")
 	for attr, value in args.__dict__.items():
 		print("\t{}={}".format(attr.upper(), value))
-	
+		
 	# load data
 	strain_data, sd_train_data, sdev_data, stest_data, embeddings =\
                 data_utils.load_dataset(args, 'askubuntu-master', dtrain=True)
@@ -63,6 +65,7 @@ def main():
 	# initalize necessary parameters
 	args.embed_num = embeddings.shape[0]
 	args.kernel_sizes = [int(k) for k in args.kernel_sizes.split(',')]
+	
 	
 	# load model
 	if args.snapshot is None:

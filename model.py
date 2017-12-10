@@ -24,6 +24,13 @@ class CNN(nn.Module):
             self.convs1 = nn.ModuleList([nn.Conv2d(Ci, Co, (K, D), bias=False) for K in Ks])
 
             self.drop = nn.Dropout2d(0.25)
+            
+            # convolutional steps for bottleneck regularization
+            if 'use_mmd' in self.args.__dict__ and self.args.use_mmd:
+				out_size = args.kernel_num * len(args.kernel_sizes)
+				b_size = int(args.bottleneck * out_size)
+				self.fc1 = nn.Linear(out_size, b_size)
+				self.fc2 = nn.Linear(b_size, out_size)
 
 	def forward(self, x):
 		
@@ -43,7 +50,14 @@ class CNN(nn.Module):
             #x = [self.drop(i) for i in x] 
             x = torch.cat(x, 1)
 
-            return x 
+            if 'use_mmd' in self.args.__dict__ and self.args.use_mmd:
+				bottleneck = self.fc1(x)
+				x = self.fc2(bottleneck)
+				
+				return x, bottleneck
+            else:	
+				return x
+			
 
 class LSTM(nn.Module):
 	def __init__(self, args, embeddings):
@@ -70,6 +84,13 @@ class LSTM(nn.Module):
 				    batch_first=True,
 				    bidirectional=args.bidirectional)
 		
+		# mmd setup
+		if 'use_mmd' in self.args.__dict__ and self.args.use_mmd:
+			out_size = args.hidden_size
+			b_size = int(args.bottleneck * out_size)
+			self.fc1 = nn.Linear(out_size, b_size)
+			self.fc2 = nn.Linear(b_size, out_size)
+		
 
 	def forward(self, x):
 		x = self.embed(x) # (N,W,D) 
@@ -86,9 +107,18 @@ class LSTM(nn.Module):
 		out = out.permute(0,2,1)		# swap axes
 		
 		if self.args.avg_pool:
-			return F.avg_pool1d(out, out.size(2)).squeeze(2)
+			out = F.avg_pool1d(out, out.size(2)).squeeze(2)
 		else:
-			return F.max_pool1d(out, out.size(2)).squeeze(2)
+			out = F.max_pool1d(out, out.size(2)).squeeze(2)
+			
+		if 'use_mmd' in self.args.__dict__ and self.args.use_mmd:
+			bottleneck = self.fc1(out)
+			out = self.fc2(bottleneck)
+			
+			return out, bottleneck
+		else:
+			return out
+
 
 class GradReverse(autograd.Function):
     def __init__(self, lambd):
@@ -100,8 +130,10 @@ class GradReverse(autograd.Function):
     def backward(self, grad_output):
         return (grad_output * -self.lambd)
 
+
 def grad_reverse(x, lambd):
     return GradReverse(lambd)(x)
+
 
 class DomainClassifier(nn.Module):
     def __init__(self, args, embeddings):
