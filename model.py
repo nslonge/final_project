@@ -51,10 +51,10 @@ class CNN(nn.Module):
             x = torch.cat(x, 1)
 
             if 'use_mmd' in self.args.__dict__ and self.args.use_mmd:
-				bottleneck = self.fc1(x)
-				x = self.fc2(bottleneck)
+#				bottleneck = self.fc1(x)
+#				x = self.fc2(bottleneck)
 				
-				return x, bottleneck
+				return x, x#bottleneck
             else:	
 				return x
 			

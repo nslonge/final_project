@@ -37,11 +37,11 @@ def train_model(s_train, sd_train, s_dev, s_test,
 		print('\nTrain loss: {}, {}'.format(loss1, loss2))
 		torch.save(q_model, './mod' + str(epoch) + '.pkl')#args.save_path)
 
-#		print('\nEvaluating on source dev')
-#		evaluate.q_evaluate(q_model, s_dev, args)
+		print('\nEvaluating on source dev')
+		evaluate.q_evaluate(q_model, s_dev, args)
 
-#		print('Evaluating on source test')
-#		evaluate.q_evaluate(q_model, s_test, args)
+		print('Evaluating on source test')
+		evaluate.q_evaluate(q_model, s_test, args)
 
 		print('\nEvaluating on target dev')
 		evaluate.q_evaluate(q_model, t_dev, args)
@@ -126,8 +126,9 @@ def calc_mmd_loss(bottleneck, y):
 	phi_t = torch.mean(phi_t, dim=0, keepdim=True)
 	
 	#TODO: parameterize p-norm in args
-	pdist = nn.PairwiseDistance(p=2)
-	mmd = pdist(phi_s, phi_t)
+	p = 2
+	pdist = nn.PairwiseDistance(p=p)
+	mmd = pdist(phi_s, phi_t) / (float(repr_len) ** (1.0/p))
 	return mmd
 	
 	
