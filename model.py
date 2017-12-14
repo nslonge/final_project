@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd as autograd
-
+import warnings
+warnings.filterwarnings("ignore")
 
 class CNN(nn.Module):
 	def __init__(self, args, embeddings):
@@ -25,7 +26,7 @@ class CNN(nn.Module):
                                          for K in Ks])
 
             # dropout
-            self.drop = nn.Dropout2d(0.25)
+            #self.drop = nn.Dropout2d(0.25)
             
             # convolutional steps for bottleneck regularization
             if 'use_mmd' in self.args.__dict__ and self.args.use_mmd:
@@ -40,10 +41,6 @@ class CNN(nn.Module):
             # convulational layers 
             x = [F.relu(conv(x)).squeeze(3) for conv in self.convs1] 
 
-            # dropout
-            if self.args.dropout: 
-                x = [self.drop(i) for i in x]
-            
             # pooling
             if self.args.avg_pool:
                 x = [F.avg_pool1d(i, i.size(2)).squeeze(2) for i in x] 

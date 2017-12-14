@@ -21,18 +21,18 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description='PyTorch project')
 parser.add_argument('--batch-size', type=int, default=64, help='batch size for training [default: 64]')
 parser.add_argument('--shuffle', action='store_true', default=False, help='shuffle the data every epoch' )
-parser.add_argument('--epochs', type=int, default=10, help='number of epochs for train [default: 10]')
+parser.add_argument('--epochs', type=int, default=20, help='number of epochs for train [default: 20]')
 parser.add_argument('--save-path', type=str, default='./mod.pkl', help='where to save the snapshot')
 parser.add_argument('--name', type=str, default='model', help='name of model')
 parser.add_argument('--snapshot', type=str, default=None, help='filename of model snapshot [default: None]')
 parser.add_argument('--optimizer', type=str, default='adam', help='which optimizer to use: [default Adam]')
-parser.add_argument('--lr', type=float, default=0.01, help='initial learning rate [default: 0.01]')
-parser.add_argument('--lr-d', type=float, default=0.01, help='initial learning rate for domain classifier [default: 0.01]')
+parser.add_argument('--lr', type=float, default=0.001, help='initial learning rate [default: 0.01]')
+parser.add_argument('--lr-d', type=float, default=0.001, help='initial learning rate for domain classifier [default: 0.01]')
 parser.add_argument('--full-eval', type=str2bool, default=True, help='run full adversarial domain adaptation [default: True]')
 parser.add_argument('--use-mmd', type=str2bool, default=False, help='use mmd for domain transfer [default: False]')
 
 # model parameters
-parser.add_argument('--model', type=str, default='cnn', help='use cnn or lstm model? [default: cnn]')
+parser.add_argument('--model', type=str, default='lstm', help='use cnn or lstm model? [default: cnn]')
 parser.add_argument('--max-title', type=int, default=20, help='maximum title length [default: 20]')
 parser.add_argument('--avg-pool', type=str2bool, default=False, help='use mean or max pooling [default: True]')
 parser.add_argument('--delta', type=float, default=.01, help='delta for use in loss function [default: 0.01]')
@@ -40,14 +40,13 @@ parser.add_argument('--lambd', type=float, default=.01, help='lambda value form 
 parser.add_argument('--use-body', type=str2bool, default=False, help='use question body or just question title?')
 parser.add_argument('--max-body', type=int, default=100, help='maximum body length [default: 100]')
 parser.add_argument('--embed-dim', type=int, default=300, help='number of embedding dimension [default: 300]')
-parser.add_argument('--kernel-num', type=int, default=100, help='number of each kind of kernel [default: 100]')
-parser.add_argument('--kernel-sizes', type=str, default='2,3,4', help='comma-separated kernel size to use for convolution')
+parser.add_argument('--kernel-num', type=int, default=667, help='number of each kind of kernel [default: 667]')
+parser.add_argument('--kernel-sizes', type=str, default='2', help='comma-separated kernel size to use for convolution')
 parser.add_argument('--hidden-size', type=int, default=240, help='hidden layer size [default: 240]')
 parser.add_argument('--hidden-layer', type=int, default=1, help='hidden layer number for lstm [default: 1]')
 parser.add_argument('--bidirectional', type=str2bool, default=False, help='using bidirectional lstm [default: False]')
 parser.add_argument('--domain-size', type=int, default=100, help='hidden layer size in domain classifier [default: 100]')
 parser.add_argument('--neg-samples', type=int, default=20, help='number of negative samples to use in training [default; 20]')
-parser.add_argument('--decay-lr', type=str2bool, default=False, help='decay learning rate over time')
 parser.add_argument('--bottleneck', type=float, default=0.5, help='size of bottleneck layer w.r.t. output [default: 0.5]')
 parser.add_argument('--lambda-mmd', type=float, default=0.001, help='lambda for mmd loss [default: 0.001]')
 args = parser.parse_args()
@@ -98,12 +97,6 @@ def main():
 
             # evaluate
                         
-            print('\nEvaluating on source dev')
-            evaluate.q_evaluate(mod, sdev_data, args)
-            
-            print('Evaluating on source test')
-            evaluate.q_evaluate(mod, stest_data, args)
-            
             print('\nEvaluating on target dev')
             evaluate.q_evaluate(mod, ddev_data, args)
             

@@ -84,7 +84,7 @@ def getIndicesTensor(text_arr, word_to_indx, max_length):
 
 # load embedding for each word
 def getEmbeddingTensor(args):
-	embedding_path='askubuntu-master/vector/vectors_pruned.{}.txt.gz'.format(args.embed_dim)
+	embedding_path='vector/vectors_pruned.{}.txt.gz'.format(args.embed_dim)
 	lines = []
 	with gzip.open(embedding_path) as file:
 		lines = file.readlines()
