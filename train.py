@@ -38,7 +38,7 @@ def train_model(train_data, dev_data, test_data, model, args):
 		#											 guess,
 		#											 tot))
 		print('Train loss: {}'.format(loss))
-		torch.save(model, args.save_path)
+                torch.save(model, args.save_path + args.name + '.' +str(epoch) + '.pkl')
 
 		print('\nEvaluating on dev')
 		evaluate.q_evaluate(model, dev_data, args)
@@ -82,9 +82,6 @@ def mmloss(q, p_plus, ps, args):
 	cos2 = nn.CosineSimilarity(dim=2)
 	s_s = cos2(qs,ps) # (neg_samples, bs)
 
-        #y = autograd.Variable(torch.LongTensor((s_s.data.shape[1])).fill_(0))
-        #return torch.transpose(s_s,0,1), y
-        
 	# compute delta tensor
 	bs = s_0.data.shape[0]
 	delta = np.array([0.0]+[args.delta for _ in range(args.neg_samples)])

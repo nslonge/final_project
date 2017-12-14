@@ -23,6 +23,7 @@ parser.add_argument('--batch-size', type=int, default=64, help='batch size for t
 parser.add_argument('--shuffle', action='store_true', default=False, help='shuffle the data every epoch' )
 parser.add_argument('--epochs', type=int, default=10, help='number of epochs for train [default: 10]')
 parser.add_argument('--save-path', type=str, default='./mod.pkl', help='where to save the snapshot')
+parser.add_argument('--name', type=str, default='model', help='name of model')
 parser.add_argument('--snapshot', type=str, default=None, help='filename of model snapshot [default: None]')
 parser.add_argument('--optimizer', type=str, default='adam', help='which optimizer to use: [default Adam]')
 parser.add_argument('--lr', type=float, default=0.01, help='initial learning rate [default: 0.01]')
@@ -48,7 +49,7 @@ parser.add_argument('--domain-size', type=int, default=100, help='hidden layer s
 parser.add_argument('--neg-samples', type=int, default=20, help='number of negative samples to use in training [default; 20]')
 parser.add_argument('--decay-lr', type=str2bool, default=False, help='decay learning rate over time')
 parser.add_argument('--bottleneck', type=float, default=0.5, help='size of bottleneck layer w.r.t. output [default: 0.5]')
-parser.add_argument('--lambda-mmd', type=float, default=0.0001, help='lambda for mmd loss [default: 0.0001]')
+parser.add_argument('--lambda-mmd', type=float, default=0.001, help='lambda for mmd loss [default: 0.001]')
 args = parser.parse_args()
 
 def main():

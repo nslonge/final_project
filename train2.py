@@ -17,25 +17,24 @@ def train_model(s_train, sd_train, s_dev, s_test,
                 t_train, t_dev, t_test,
                 q_model, d_model, args):
 
-	# use an optimized version of SGD
-	q_parameters = filter(lambda p: p.requires_grad, q_model.parameters())
-	d_parameters = filter(lambda p: p.requires_grad, d_model.parameters())
+    q_parameters = filter(lambda p: p.requires_grad, q_model.parameters())
+    d_parameters = filter(lambda p: p.requires_grad, d_model.parameters())
 
-	optimizer = None
-	q_opt = torch.optim.Adam(q_parameters,lr=args.lr)
-	d_opt = torch.optim.Adam(d_parameters,lr=-args.lr_d)
+    optimizer = None
+    q_opt = torch.optim.Adam(q_parameters,lr=args.lr)
+    d_opt = torch.optim.Adam(d_parameters,lr=-args.lr_d)
 
-	scores = []
-	for epoch in range(1, args.epochs+1):
-		print("-------------\nEpoch {}:\n".format(epoch))
+    scores = []
+    for epoch in range(1, args.epochs+1):
+        print("-------------\nEpoch {}:\n".format(epoch))
 
-		# train
-		loss1,loss2 = run_epoch(s_train, sd_train, t_train, 
-                                        q_model, d_model, 
-                                        q_opt, d_opt, args)
+        # train
+        loss1,loss2 = run_epoch(s_train, sd_train, t_train, 
+                                q_model, d_model, 
+                                q_opt, d_opt, args)
 
-		print('\nTrain loss: {}, {}'.format(loss1, loss2))
-		torch.save(q_model, './mod' + str(epoch) + '.pkl')#args.save_path)
+        print('\nTrain loss: {}, {}'.format(loss1, loss2))
+        torch.save(q_model, args.save_path + args.name + '.' +str(epoch) + '.pkl')
 
 #		print('\nEvaluating on source dev')
 #		evaluate.q_evaluate(q_model, s_dev, args)
@@ -43,19 +42,20 @@ def train_model(s_train, sd_train, s_dev, s_test,
 #		print('Evaluating on source test')
 #		evaluate.q_evaluate(q_model, s_test, args)
 
-		print('\nEvaluating on target dev')
-		evaluate.q_evaluate(q_model, t_dev, args)
+        print('\nEvaluating on target dev')
+        evaluate.q_evaluate(q_model, t_dev, args)
 
-		print('Evaluating on target test')
-		evaluate.q_evaluate(q_model, t_test, args)
+        print('Evaluating on target test')
+        evaluate.q_evaluate(q_model, t_test, args)
 
-		if args.full_eval and not args.use_mmd:
-			print('Evaluating domain classifier on dev')
-			evaluate.d_evaluate(q_model, d_model, s_dev, t_dev)
+        if args.full_eval and not args.use_mmd:
+            print('Evaluating domain classifier on dev')
+            evaluate.d_evaluate(q_model, d_model, s_dev, t_dev)
 
-			print('Evaluating domain classifier on test')
-			evaluate.d_evaluate(q_model, d_model, s_test, t_test)
+            print('Evaluating domain classifier on test')
+            evaluate.d_evaluate(q_model, d_model, s_test, t_test)
 
+        
 
 def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 	pos_batch = []
@@ -79,7 +79,6 @@ def get_pos_neg(idx_to_cand, idx_to_vec, ids, titles):
 	return torch.LongTensor(new_titles),\
 		   torch.LongTensor(pos_batch),\
 		   torch.LongTensor(neg_batch)
-
 
 def mmloss(q, p_plus, ps, args):
 	#q: (bs,Co), p_plus: (bs, Co), ps: (neg_samples, bs, Co)	
@@ -129,7 +128,12 @@ def calc_mmd_loss(bottleneck, y):
 	pdist = nn.PairwiseDistance(p=2)
 	mmd = pdist(phi_s, phi_t)
 	return mmd
-	
+
+def calc_mmd_loss2(bottleneck, n, m):
+    source, target = torch.split(bottleneck, n, 0) 
+    source = torch.mean(source, 0)
+    target = torch.mean(target, 0)
+    return torch.norm(source-target, p=2)
 	
 def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
 	# load random batches
@@ -223,27 +227,25 @@ def run_epoch(s_data, sd_data, t_data, q_model, d_model, q_opt, d_opt, args):
             
             q_opt.zero_grad()
             if not args.use_mmd:
-				d_opt.zero_grad()
+		d_opt.zero_grad()
           
             if args.use_mmd:
-				_, bottleneck = q_model(x)
-				loss2 = calc_mmd_loss(bottleneck, y)
-				loss = loss1 + args.lambda_mmd * (loss2 ** 2)
-				
+                _, bottleneck = q_model(x)
+                loss2 = calc_mmd_loss2(bottleneck, x1.shape[0], x0.shape[0])
+                loss = loss1 + args.lambda_mmd * loss2
+                        
             else:
-	            out = q_model(x) 
-	            out = d_model(out)
-	       
-	            loss2 = criterion(out,y)			
-	            loss = loss1 - args.lambd * loss2
+                out = q_model(x) 
+                out = d_model(out)
+           
+                loss2 = criterion(out,y)			
+                loss = loss1 - args.lambd * loss2
 				
             loss.backward()
-			
-            if not args.use_mmd:
-				d_opt.step()
-				
             q_opt.step()
-
+            if not args.use_mmd:
+		d_opt.step()
+				
             losses2.append(loss2.cpu().data[0])
 
 

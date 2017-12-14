@@ -24,6 +24,7 @@ parser.add_argument('--epochs', type=int, default=50, help='number of epochs for
 parser.add_argument('--batch-size', type=int, default=64, help='batch size for training [default: 64]')
 parser.add_argument('--delta', type=float, default=.01, help='delta for use in loss function')
 parser.add_argument('--save-path', type=str, default='./mod.pkl', help='where to save the snapshot')
+parser.add_argument('--name', type=str, default='model', help='name of model')
 parser.add_argument('--use-body', type=str2bool, default=False, help='use question body or just question title?')
 parser.add_argument('--optimizer', type=str, default='adam', help='which optimizer to use: [default: Adam]')
 parser.add_argument('--shuffle', action='store_true', default=False, help='shuffle the data every epoch' )

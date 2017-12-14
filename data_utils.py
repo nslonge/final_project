@@ -46,7 +46,7 @@ class FullDataset(data.Dataset):
 			
 	## Convert one line from dataset to {Text, Tensor, Labels}
 	def processLine(self, line, embeddings, args):
-		line = line.split('\t')
+                line = line.lower().split('\t')
 		id = int(line[0])
 		title = line[1].split()
 		x =  getIndicesTensor(title, self.word_to_indx, args.max_title)
